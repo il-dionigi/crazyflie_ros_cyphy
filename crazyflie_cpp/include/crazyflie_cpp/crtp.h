@@ -2,6 +2,8 @@
 
 #include "Crazyradio.h"
 #include <cstdint>
+#include <cstring>
+#include <iostream>
 
 static int const CRTP_MAX_DATA_SIZE = 30;
 static int const CRTP_MAXSIZE = 31;
@@ -60,6 +62,23 @@ struct crtpConsoleResponse
 };
 CHECKSIZE_RESPONSE(crtpConsoleResponse)
 
+struct crtpConsoleRequest
+{
+  crtpConsoleRequest(
+    char msg[30])
+    : header(0, 0)
+    {
+      std::memcpy(this->text, msg, 30);
+      this->text[30] = 0;
+    }
+    /*static bool match(const Crazyradio::Ack& response) {
+      return crtp(response.data[0]) == crtp(0, 0);
+    }*/
+
+    crtp header;
+    char text[31];
+};
+CHECKSIZE_RESPONSE(crtpConsoleRequest)
 // Port 2 (Parameters)
 
 struct crtpParamTocGetItemResponse;
@@ -206,7 +225,14 @@ struct crtpSetpointRequest
     float roll, // actually y
     float pitch, // actually x
     float yawrate,  // actually yaw
-    uint16_t thrust);  // actually (z*1000)
+    uint16_t thrust)  // actually (z*1000)
+    : header(0x03, 0)
+    , roll(roll)
+    , pitch(pitch*-1) //not really sure why but the bitcraze people do this when sending pitch
+    , yawrate(yawrate)
+    , thrust(thrust)
+  {
+  }
   const crtp header;
   float roll;
   float pitch;

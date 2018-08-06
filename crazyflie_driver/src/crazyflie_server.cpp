@@ -280,8 +280,8 @@ void cmdSendSetpoint(
       float y = msg->y;
       float z = msg->z;
       float yaw = msg->yaw;
-
-      m_cf.sendSetpoint(y, x, yaw, z*1000);
+      printf("roll: %3f, pitch: %3f, yaw: %3f, thrust: %d\n", y, x, yaw, (int)(z*1000));
+      m_cf.sendSetpoint(y, x, yaw, (int)(z*1000));
       m_sentSetpoint = true;
     }
   }

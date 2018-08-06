@@ -128,6 +128,10 @@ void Crazyflie::sendSetpoint(
 {
   crtpSetpointRequest request(roll, pitch, yawrate, thrust);
   sendPacket((const uint8_t*)&request, sizeof(request));
+  char msg[30];
+  std::memcpy(msg, "woah it works\0", 14);
+  crtpConsoleRequest testMsg(msg);
+  sendPacket((const uint8_t*)&testMsg, sizeof(testMsg));
 }
 
 void Crazyflie::sendStop()

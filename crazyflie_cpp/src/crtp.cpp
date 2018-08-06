@@ -120,7 +120,7 @@ crtpPositionSetpointRequest::crtpPositionSetpointRequest(
 	this->yaw = yaw;
 }
 
-// CYPHY
+/*/ CYPHY
 crtpSetpointRequest::crtpSetpointRequest(
 	float roll,
 	float pitch,
@@ -132,4 +132,4 @@ crtpSetpointRequest::crtpSetpointRequest(
 	this->pitch = -pitch;
 	this->yawrate = yawrate;
 	this->thrust = thrust;
-}
+}*/

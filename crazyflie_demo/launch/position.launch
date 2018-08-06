@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <launch>
-  <arg name="uri" default="radio://0/85/2M/E7E7E7E7E8" /> <!--85 is dr. One -->
+  <arg name="uri" default="radio://0/80/2M/E7E7E7E7E8" /> <!--85 is dr. One -->
 
   <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch">
   </include>
