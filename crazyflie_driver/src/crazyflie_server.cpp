@@ -124,7 +124,8 @@ public:
     , m_subscribeCmdFullState()
     , m_subscribeCmdHover()
     , m_subscribeCmdStop()
-    , m_subscribeCmdPosition()
+    // , m_subscribeCmdPosition()
+    , m_subscribeCmdSetpoint()
     , m_subscribeExternalPosition()
     , m_pubImu()
     , m_pubTemp()
@@ -270,6 +271,20 @@ void cmdPositionSetpoint(
     }
   }
 
+void cmdSendSetpoint(
+    const crazyflie_driver::Position::ConstPtr& msg)
+  {
+    if(!m_isEmergency) {
+      float x = msg->x;
+      float y = msg->y;
+      float z = msg->z;
+      float yaw = msg->yaw;
+
+      m_cf.sendSetpoint(y, x, yaw, z*1000);
+      m_sentSetpoint = true;
+    }
+  }
+
   bool updateParams(
     crazyflie_driver::UpdateParams::Request& req,
     crazyflie_driver::UpdateParams::Response& res)
@@ -381,8 +396,8 @@ void cmdPositionSetpoint(
     m_serviceEmergency = n.advertiseService(m_tf_prefix + "/emergency", &CrazyflieROS::emergency, this);
     m_subscribeCmdHover = n.subscribe(m_tf_prefix + "/cmd_hover", 1, &CrazyflieROS::cmdHoverSetpoint, this);
     m_subscribeCmdStop = n.subscribe(m_tf_prefix + "/cmd_stop", 1, &CrazyflieROS::cmdStop, this);
-    m_subscribeCmdPosition = n.subscribe(m_tf_prefix + "/cmd_position", 1, &CrazyflieROS::cmdPositionSetpoint, this);
-
+    // m_subscribeCmdPosition = n.subscribe(m_tf_prefix + "/cmd_position", 1, &CrazyflieROS::cmdPositionSetpoint, this);
+    m_subscribeCmdSetpoint = n.subscribe(m_tf_prefix + "/cmd_setpoint", 1, &CrazyflieROS::cmdSendSetpoint, this);
 
     m_serviceSetGroupMask = n.advertiseService(m_tf_prefix + "/set_group_mask", &CrazyflieROS::setGroupMask, this);
     m_serviceTakeoff = n.advertiseService(m_tf_prefix + "/takeoff", &CrazyflieROS::takeoff, this);
@@ -793,7 +808,8 @@ private:
   ros::Subscriber m_subscribeCmdFullState;
   ros::Subscriber m_subscribeCmdHover;
   ros::Subscriber m_subscribeCmdStop;
-  ros::Subscriber m_subscribeCmdPosition;
+  // ros::Subscriber m_subscribeCmdPosition;
+  ros::Subscriber m_subscribeCmdSetpoint;
   ros::Subscriber m_subscribeExternalPosition;
   ros::Publisher m_pubImu;
   ros::Publisher m_pubTemp;

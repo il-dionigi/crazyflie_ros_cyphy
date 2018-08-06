@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /home/dionigi/catkin_ws/src/crazyflie_ros_cyphy/crazyflie_demo/cmake-build-debug/devel/setup.sh

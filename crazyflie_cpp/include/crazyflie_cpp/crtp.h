@@ -899,3 +899,20 @@ struct crtpPlatformRSSIAck
     uint8_t rssi;
 };
 CHECKSIZE_RESPONSE(crtpPlatformRSSIAck)
+
+// CYPHY
+
+struct crtpSetpointRequest
+{
+  crtpSetpointRequest(
+    float roll,     // actually y
+    float pitch,    // actually x
+    float yaw,      // actually yaw
+    float thrust);  // actually (z*1000)
+  const crtp header;
+  float roll;
+  float pitch;
+  float yaw;
+  float thrust;
+} __attribute__((packed));
+CHECKSIZE(crtpSetpointRequest)

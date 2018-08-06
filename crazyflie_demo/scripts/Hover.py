@@ -167,12 +167,12 @@ if __name__ == '__main__':
     rospy.init_node('hover', anonymous=True)
 
     cf1 = Crazyflie("cf1")
-    cf2 = Crazyflie("cf2")
+    # cf2 = Crazyflie("cf2")
 
     t1 = Thread(target=handler, args=(cf1,))
-    t2 = Thread(target=handler, args=(cf2,))
+    # t2 = Thread(target=handler, args=(cf2,))
     t1.start()
-    t2.start()
+    # t2.start()
 
 
 
