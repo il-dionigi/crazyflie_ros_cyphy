@@ -11,7 +11,7 @@ if __name__ == '__main__':
     worldFrame = rospy.get_param("~worldFrame", "/world")
 
     rate = rospy.Rate(10) # 10 hz
-    name = "/cmd_setpoint
+    name = "cmd_setpoint"
 
     msg = Position()
     msg.header.seq = 0

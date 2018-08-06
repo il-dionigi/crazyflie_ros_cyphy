@@ -124,12 +124,12 @@ crtpPositionSetpointRequest::crtpPositionSetpointRequest(
 crtpSetpointRequest::crtpSetpointRequest(
 	float roll,
 	float pitch,
-	float yaw,
-	float thrust)
+	float yawrate,
+	uint16_t thrust)
 	: header(0X03, 0)
 {
 	this->roll = roll;
 	this->pitch = -pitch;
-	this->yaw = yaw;
+	this->yawrate = yawrate;
 	this->thrust = thrust;
 }

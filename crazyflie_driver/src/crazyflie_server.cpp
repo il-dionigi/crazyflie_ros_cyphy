@@ -274,6 +274,7 @@ void cmdPositionSetpoint(
 void cmdSendSetpoint(
     const crazyflie_driver::Position::ConstPtr& msg)
   {
+    printf("calling cmdSendSetpoint!\n");
     if(!m_isEmergency) {
       float x = msg->x;
       float y = msg->y;
@@ -398,7 +399,7 @@ void cmdSendSetpoint(
     m_subscribeCmdStop = n.subscribe(m_tf_prefix + "/cmd_stop", 1, &CrazyflieROS::cmdStop, this);
     // m_subscribeCmdPosition = n.subscribe(m_tf_prefix + "/cmd_position", 1, &CrazyflieROS::cmdPositionSetpoint, this);
     m_subscribeCmdSetpoint = n.subscribe(m_tf_prefix + "/cmd_setpoint", 1, &CrazyflieROS::cmdSendSetpoint, this);
-
+    printf("prefix: %s\n", m_tf_prefix.c_str());
     m_serviceSetGroupMask = n.advertiseService(m_tf_prefix + "/set_group_mask", &CrazyflieROS::setGroupMask, this);
     m_serviceTakeoff = n.advertiseService(m_tf_prefix + "/takeoff", &CrazyflieROS::takeoff, this);
     m_serviceLand = n.advertiseService(m_tf_prefix + "/land", &CrazyflieROS::land, this);
