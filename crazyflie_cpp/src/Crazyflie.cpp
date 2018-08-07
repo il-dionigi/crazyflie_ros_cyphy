@@ -128,10 +128,10 @@ void Crazyflie::sendSetpoint(
 {
   crtpSetpointRequest request(roll, pitch, yawrate, thrust);
   sendPacket((const uint8_t*)&request, sizeof(request));
-  char msg[30];
-  std::memcpy(msg, "woah it works\0", 14);
+  /*char msg[30];
+  std::memcpy(msg, "^time it abc\0", 14);
   crtpConsoleRequest testMsg(msg);
-  sendPacket((const uint8_t*)&testMsg, sizeof(testMsg));
+  sendPacket((const uint8_t*)&testMsg, sizeof(testMsg));*/
 }
 
 void Crazyflie::sendStop()
@@ -917,6 +917,19 @@ void Crazyflie::handleAck(
     m_logger.warning("Don't know ack: Port: " + std::to_string((int)header->port)
       + " Channel: " + std::to_string((int)header->channel)
       + " Len: " + std::to_string((int)result.size));
+    if ((int)header->port == 0){
+      if (result.size > 0) {
+        if ( (int)header->channel == 1){
+          crtpConsoleResponse* r = (crtpConsoleResponse*)result.data;
+          if (m_consoleCallback) {
+            m_consoleCallback(r->text);
+          }
+        }
+        else if ( (int)header->channel == 2){
+          //encrypted data; decryption stuff here
+        }
+      }
+    }
     // for (size_t i = 1; i < result.size; ++i) {
     //   std::cout << "    " << (int)result.data[i] << std::endl;
     // }
