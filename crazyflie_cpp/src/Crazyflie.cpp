@@ -928,6 +928,22 @@ void Crazyflie::handleAck(
         else if ( (int)header->channel == 2){
           //encrypted data; decryption stuff here
         }
+        else{
+          //channel =3 , testing channel
+          //want to print bytes
+          crtpConsoleResponse* r = (crtpConsoleResponse*)result.data;
+          char hex[17] = "0123456789ABCDEF";
+          int i;
+          char toPrint[64];
+          int index = 0; 
+          for (i = 0; i < (int)result.size; i++){
+            toPrint[index + 1] = hex[ r->text[i] & 0xF ];
+            toPrint[index] = hex[ (r->text[i] >> 4) & 0xF ];
+            index += 2;
+          }
+          toPrint[index] = 0;
+          printf("BYTES: %s\n", toPrint);
+        }
       }
     }
     // for (size_t i = 1; i < result.size; ++i) {

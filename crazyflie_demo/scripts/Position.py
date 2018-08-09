@@ -10,7 +10,7 @@ if __name__ == '__main__':
     rospy.init_node('position', anonymous=True)
     worldFrame = rospy.get_param("~worldFrame", "/world")
 
-    rate = rospy.Rate(10) # 10 hz
+    rate = rospy.Rate(6) #  hz
     name = "cmd_setpoint"
 
     msg = Position()
@@ -49,10 +49,10 @@ if __name__ == '__main__':
             msg.header.seq += 1
             msg.header.stamp = rospy.Time.now()
             rospy.loginfo("sending...")
-            rospy.loginfo(msg.x)
-            rospy.loginfo(msg.y)
-            rospy.loginfo(msg.z)
-            rospy.loginfo(msg.yaw)
+            #rospy.loginfo(msg.x)
+            #rospy.loginfo(msg.y)
+            #rospy.loginfo(msg.z)
+            #rospy.loginfo(msg.yaw)
             # rospy.loginfo(now)
             pub.publish(msg)
             rate.sleep()
@@ -64,10 +64,10 @@ if __name__ == '__main__':
             msg.header.seq += 1
             msg.header.stamp = rospy.Time.now()
             rospy.loginfo("sending...")
-            rospy.loginfo(msg.x)
-            rospy.loginfo(msg.y)
-            rospy.loginfo(msg.z)
-            rospy.loginfo(msg.yaw)
+            #rospy.loginfo(msg.x)
+            #rospy.loginfo(msg.y)
+            #rospy.loginfo(msg.z)
+            #rospy.loginfo(msg.yaw)
             # rospy.loginfo(now)
             pub.publish(msg)
             rate.sleep()
@@ -86,10 +86,10 @@ if __name__ == '__main__':
         msg.header.seq += 1
         msg.header.stamp = rospy.Time.now()
         rospy.loginfo("sending...")
-        rospy.loginfo(msg.x)
-        rospy.loginfo(msg.y)
-        rospy.loginfo(msg.z)
-        rospy.loginfo(msg.yaw)
+        #rospy.loginfo(msg.x)
+        #rospy.loginfo(msg.y)
+        #rospy.loginfo(msg.z)
+        #rospy.loginfo(msg.yaw)
         pub.publish(msg)
         rate.sleep()
 
@@ -106,10 +106,10 @@ if __name__ == '__main__':
         msg.header.seq += 1
         msg.header.stamp = rospy.Time.now()
         rospy.loginfo("sending...")
-        rospy.loginfo(msg.x)
-        rospy.loginfo(msg.y)
-        rospy.loginfo(msg.z)
-        rospy.loginfo(msg.yaw)
+        #rospy.loginfo(msg.x)
+        #rospy.loginfo(msg.y)
+        #rospy.loginfo(msg.z)
+        #rospy.loginfo(msg.yaw)
         pub.publish(msg)
         rate.sleep()
 
