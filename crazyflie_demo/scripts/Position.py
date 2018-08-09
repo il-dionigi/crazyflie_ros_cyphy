@@ -27,7 +27,7 @@ if __name__ == '__main__':
     stop_pub = rospy.Publisher("cmd_stop", Empty, queue_size=1)
     stop_msg = Empty()
 
-    rospy.wait_for_service('update_params')
+    '''rospy.wait_for_service('update_params')
     rospy.loginfo("found update_params service")
     update_params = rospy.ServiceProxy('update_params', UpdateParams)
 
@@ -35,9 +35,9 @@ if __name__ == '__main__':
     update_params(["kalman/resetEstimation"])
     rospy.sleep(0.1)
     rospy.set_param("kalman/resetEstimation", 0)
-    update_params(["kalman/resetEstimation"])
+    update_params(["kalman/resetEstimation"])'''
     rospy.sleep(0.5)
-
+    rospy.loginfo("START TAKEOFF...")
     # take off
     while not rospy.is_shutdown():
         for y in range(10):
@@ -48,7 +48,7 @@ if __name__ == '__main__':
             now = rospy.get_time()
             msg.header.seq += 1
             msg.header.stamp = rospy.Time.now()
-            rospy.loginfo("sending...")
+            rospy.loginfo("sending...(T0)")
             #rospy.loginfo(msg.x)
             #rospy.loginfo(msg.y)
             #rospy.loginfo(msg.z)
@@ -63,7 +63,7 @@ if __name__ == '__main__':
             msg.z = 0.4
             msg.header.seq += 1
             msg.header.stamp = rospy.Time.now()
-            rospy.loginfo("sending...")
+            rospy.loginfo("sending...(T1)")
             #rospy.loginfo(msg.x)
             #rospy.loginfo(msg.y)
             #rospy.loginfo(msg.z)
@@ -85,7 +85,7 @@ if __name__ == '__main__':
             break
         msg.header.seq += 1
         msg.header.stamp = rospy.Time.now()
-        rospy.loginfo("sending...")
+        rospy.loginfo("sending...(M)")
         #rospy.loginfo(msg.x)
         #rospy.loginfo(msg.y)
         #rospy.loginfo(msg.z)
@@ -105,7 +105,7 @@ if __name__ == '__main__':
             break
         msg.header.seq += 1
         msg.header.stamp = rospy.Time.now()
-        rospy.loginfo("sending...")
+        rospy.loginfo("sending...(L)")
         #rospy.loginfo(msg.x)
         #rospy.loginfo(msg.y)
         #rospy.loginfo(msg.z)
