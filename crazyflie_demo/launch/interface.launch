@@ -16,7 +16,7 @@
       <arg name="enable_logging" value="True" />
     </include>
 
-    <node name="crazyflie_demo_hover" pkg="crazyflie_demo" type="Position.py" output="screen">
+    <node name="crazyflie_demo_hover" pkg="crazyflie_demo" type="Interface.py" output="screen">
     </node>
   </group>
 

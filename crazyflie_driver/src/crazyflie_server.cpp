@@ -274,13 +274,13 @@ void cmdPositionSetpoint(
 void cmdSendSetpoint(
     const crazyflie_driver::Position::ConstPtr& msg)
   {
-    printf("calling cmdSendSetpoint!\n");
+    //printf("calling cmdSendSetpoint!\n");
     if(!m_isEmergency) {
       float x = msg->x;
       float y = msg->y;
       float z = msg->z;
       float yaw = msg->yaw;
-      printf("roll: %3f, pitch: %3f, yaw: %3f, thrust: %d\n", y, x, yaw, (int)(z*1000));
+      //printf("roll: %3f, pitch: %3f, yaw: %3f, thrust: %d\n", y, x, yaw, (int)(z*1000));
       m_cf.sendSetpoint(y, x, yaw, (int)(z*1000));
       m_sentSetpoint = true;
     }

@@ -3,33 +3,55 @@
 import rospy
 import tf
 from crazyflie_driver.msg import Position
+from crazyflie_driver.msg import Hover
 from std_msgs.msg import Empty
 from crazyflie_driver.srv import UpdateParams
 from threading import Thread
 
-currPos = [0,0,0,0]    
-def publishPos():
-    global currPos
+#x, y, z, yaw
+currPos = [0,0,0,0]
+#vx, vy, yawrate
+vel = [0,0,0]
+posMode = True
+
+def publisherThread():
+    sequence = 0
+    global currPos, vel, posMode
     while not rospy.is_shutdown():
-        msgPos.x = currPos[0]
-        msgPos.y = currPos[1]
-        msgPos.yaw = currPos[3]
-        msgPos.z = currPos[2]
-        now = rospy.get_time()
-        msgPos.header.seq += 1
-        msgPos.header.stamp = rospy.Time.now()
+        if (posMode):
+            msgPos.x = currPos[0]
+            msgPos.y = currPos[1]
+            msgPos.z = currPos[2]
+            msgPos.yaw = currPos[3]
+            msgPos.header.seq = sequence
+            msgPos.header.stamp = rospy.Time.now()
+            pubPos.publish(msgPos)
+        else:
+            msgHov.vx = vel[0]
+            msgHov.vy = vel[1]
+            msgHov.yawrate = vel[1]
+            msgHov.zDistance = currPos[2]
+            msgHov.header.seq = sequence
+            msgHov.header.stamp = rospy.Time.now()
+            pubHov.publish(msgPos)
+
         #rospy.loginfo("sending...(M)")
         #rospy.loginfo("x:"+ str(msgPos.x) + " y:" + str(msgPos.y) + " z:" + str(msgPos.z))
         #rospy.loginfo(msgPos.x)
         #rospy.loginfo(msgPos.y)
         #rospy.loginfo(msgPos.z)
         #rospy.loginfo(msgPos.yaw)
-        pub.publish(msgPos)
+        sequence += 1
         rate.sleep() 
 
-def positionMove(pos, t):
+def positionMove(pos=[0,0,0,0], t=3):
     global currPos
     currPos = pos
+    rospy.sleep(t)
+
+def setVel(velocity=[0,0,0], t=1):
+    global vel
+    vel = velocity
     rospy.sleep(t)
 
 if __name__ == '__main__':
@@ -39,15 +61,13 @@ if __name__ == '__main__':
     while (inp not in "hHpP"):
         inp = raw_input("Would you like to use Hover mode (Hh) or Position mode (Pp): ")
     if (inp in "hH"):
-        name = "cmd_setpoint"
+        posMode = True
         print("Using Position mode!")
     else:
-        name = "cmd_hover" # will implemet later
-        print("Currently not implemented, will use position mode!")
-        name = "cmd_setpoint"
-        print("Using Position mode!")
+        posMode = False
+        print("Using Hover mode!")
     rate = rospy.Rate(10) #  hz
-
+    #for position mode
     msgPos = Position()
     msgPos.header.seq = 0
     msgPos.header.stamp = rospy.Time.now()
@@ -56,9 +76,18 @@ if __name__ == '__main__':
     msgPos.y = 0.0
     msgPos.z = 0.0
     msgPos.yaw = 0.0
-
-    pub = rospy.Publisher(name, Position, queue_size=1)
-
+    pubPos = rospy.Publisher("cmd_setpoint", Position, queue_size=1)
+    #for velocity/hover mode
+    msgHov = Hover()
+    msgHov.header.seq = 0
+    msgHov.header.stamp = rospy.Time.now()
+    msgHov.header.frame_id = worldFrame
+    msgHov.vx = 0.0
+    msgHov.vy = 0.0
+    msgHov.zDistance = 0.0
+    msgHov.yawrate = 0.0
+    pubHov = rospy.Publisher( "cmd_hover", Hover, queue_size=1)
+    #to stop, don't really need this?
     stop_pub = rospy.Publisher("cmd_stop", Empty, queue_size=1)
     stop_msg = Empty()
 
@@ -77,7 +106,7 @@ if __name__ == '__main__':
     rospy.sleep(0.5)
     while (inp not in "yY"):
         inp = raw_input("Ready to takeoff (yY)?: ")
-    msgPublisher = Thread(target=publishPos)
+    msgPublisher = Thread(target=publisherThread)
     msgPublisher.start()
     rospy.loginfo("START TAKEOFF...")
     # take off
@@ -86,7 +115,6 @@ if __name__ == '__main__':
     print("What would you like to do?\n")
     timeAlloted = 3
     showAll = False
-    posMode = True
     while (inp not in "lL"):
         if (showAll):
             inp = raw_input('''
@@ -101,6 +129,7 @@ if __name__ == '__main__':
             (cC) Change the current settings
             (lL) Land
             (x) Immediately abort
+            (vV) set velocities
             (mM) Send a message
             (eE) Send encrypted message
             ''')
@@ -127,8 +156,7 @@ if __name__ == '__main__':
                     print("ERR: reverting to 3s")
             elif (inp in 'hH'):
                 posMode = False
-                print("currently not supported.")
-                posMode = True
+                print("Hover mode on!")
             elif (inp in 'pP'):
                 posMode = True
                 print("Position mode on!")
@@ -143,6 +171,11 @@ if __name__ == '__main__':
             setpoint = [float(x) for x in inp.split(',')]
             print("your setpoint is: " + str(setpoint))
             positionMove(setpoint, timeAlloted)
+        elif (inp in 'vV'):
+            inp = raw_input("Enter velocity in comma-separated form: vx,vy,yawrate\n")
+            velocity = [float(x) for x in inp.split(',')]
+            print("your setpoint is: " + str(setpoint))
+            setVel(velocity, timeAlloted)
         else:
             print("Currently not implemented.")
 
