@@ -13,11 +13,14 @@ currPos = [0,0,0,0]
 #vx, vy, yawrate
 vel = [0,0,0]
 posMode = True
+STOP = False
 
 def publisherThread():
     sequence = 0
     global currPos, vel, posMode
     while not rospy.is_shutdown():
+        if STOP:
+            return
         if (posMode):
             msgPos.x = currPos[0]
             msgPos.y = currPos[1]
@@ -33,7 +36,7 @@ def publisherThread():
             msgHov.zDistance = currPos[2]
             msgHov.header.seq = sequence
             msgHov.header.stamp = rospy.Time.now()
-            pubHov.publish(msgPos)
+            pubHov.publish(msgHov)
 
         #rospy.loginfo("sending...(M)")
         #rospy.loginfo("x:"+ str(msgPos.x) + " y:" + str(msgPos.y) + " z:" + str(msgPos.z))
@@ -60,7 +63,7 @@ if __name__ == '__main__':
     inp = 'x'
     while (inp not in "hHpP"):
         inp = raw_input("Would you like to use Hover mode (Hh) or Position mode (Pp): ")
-    if (inp in "hH"):
+    if (inp in "pP"):
         posMode = True
         print("Using Position mode!")
     else:
@@ -134,6 +137,7 @@ if __name__ == '__main__':
             (eE) Send encrypted message
             ''')
         if (inp in "xX"):
+            STOP = True
             stop_pub.publish(stop_msg)
             exit()
         elif (inp in "lL"):
@@ -174,7 +178,7 @@ if __name__ == '__main__':
         elif (inp in 'vV'):
             inp = raw_input("Enter velocity in comma-separated form: vx,vy,yawrate\n")
             velocity = [float(x) for x in inp.split(',')]
-            print("your setpoint is: " + str(setpoint))
+            print("your velocity is: " + str(velocity))
             setVel(velocity, timeAlloted)
         else:
             print("Currently not implemented.")

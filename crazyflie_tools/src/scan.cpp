@@ -9,6 +9,8 @@ int main(int argc, char **argv)
 {
   std::string addressStr;
   std::string defaultAddressStr("0xE7E7E7E7E8");
+  printf("Address is 0xE7E7E7E7E8\n");
+  printf("Scanning...\n");
   bool verbose = false;
 
   namespace po = boost::program_options;
