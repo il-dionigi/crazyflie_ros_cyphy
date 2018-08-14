@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
 
 <launch>
-  <!--<arg name="uri1" default="radio://0/85/2M/E7E7E7E7E8" />-->
+  <arg name="uri1" default="radio://0/30/2M/E7E7E7E7EE" />
   <arg name="uri2" default="radio://0/80/2M/E7E7E7E7E8" />
 
   <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch">
   </include>
-  <!-- DR1, 85 
+  <!-- radio://0/30/2M/E7E7E7E7EE is newDrone-->
   <group ns="cf1">
     <node pkg="crazyflie_driver" type="crazyflie_add" name="crazyflie_add" output="screen">
       <param name="uri" value="$(arg uri1)" />
@@ -20,8 +20,8 @@
       </rosparam>
     </node>
   </group>
-  -->
-
+  
+  <!-- radio://0/80/2M/E7E7E7E7E8 is RB-->
   <group ns="cf2">
     <node pkg="crazyflie_driver" type="crazyflie_add" name="crazyflie_add" output="screen">
       <param name="uri" value="$(arg uri2)" />

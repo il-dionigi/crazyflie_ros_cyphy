@@ -83,7 +83,7 @@ def ylineNext(height, r, step, steps):
         step -= steps/2
     y = -r+r*4*step/steps
     y = y*direct
-    return [x, y, height, 0]
+    return [x, y, height, 0], direct
     
 
 def circNext(height, r, step, steps):
@@ -102,13 +102,17 @@ def cf2task(cf):
     cf2setpoint = [0, -0.6, 0.4, 0]
     cf2nextIntersect = [0, 0.6, 0.4, 0]
     #Take off
-    cf.goToSetpoint([0, 0, 0.4, 0])
+    #cf.goToSetpoint([0, 0, 0.4, 0])
     radius = 0.6
     currentStep = 0
-    divisions = 300
+    divisions = 90
     stay = False
+    for i in range(20):
+        cf2setpoint = circNext(cf2setpoint[2], radius, currentStep, divisions)
+        cf.goToSetpoint(cf2setpoint)
+        rate.sleep()
     while(True):
-        '''if (dist(cf2nextIntersect, cf2pos) < 0.1):
+        if (dist(cf2nextIntersect, cf2pos) < 0.1):
             cf2nextIntersect[1] *= -1
         if cf2stop and cf2nextIntersect[1] == cf1setpoint:
             d = dist(cf2pos, cf1setpoint)
@@ -119,13 +123,8 @@ def cf2task(cf):
         else:
             cf2setpoint = circNext(cf2setpoint[2], radius, currentStep, divisions)
             currentStep = currentStep + 1
-            cf.goToSetpoint(cf2setpoint)'''
+            cf.goToSetpoint(cf2setpoint)
         #CIRCLE
-        #cf2setpoint = circNext(cf2setpoint[2], radius, currentStep, divisions)
-        #LINE
-        cf2setpoint = ylineNext(cf2setpoint[2], radius, currentStep, divisions)
-        currentStep = currentStep + 1 % divisions
-        cf.goToSetpoint(cf2setpoint)
         rate.sleep()
     return
 
@@ -135,16 +134,20 @@ def cf1task(cf):
     cf1pos = [0,0,0,0]
     #1=>going toward y=0.6, -1=>going toward y=-0.6
     direction = 1
-    cf1setpoint = [0, -0.6, 0.4, 0]
+    radius = 0.6
+    currentStep = 75
+    divisions = 300
+    cf1setpoint = ylineNext(height, radius, currentStep, divisions)
+    cf1nextInteresect = [0,0.6,0.4,0]
     #take off
     cf.goToSetpoint([0, 0, 0.4, 0])
     while(True):
+        cf1setpoint, direction = ylineNext(height, radius, currentStep, divisions)
+        currentStep = currentStep + 1 % divisions
         cf.goToSetpoint(cf1setpoint)
-        direction *= -1
-        cf1setpoint[1] = 0.6*direction
+        cf1nextInteresect[1] *= direction
         #find out internal position, set cf1pos
-        cf1pos = cf1setpoint 
-        if ( dist(cf1pos, cf1setpoint) < 0.2):
+        if ( dist(cf1pos, cf1nextInteresect) < 0.2):
             cf2stop = True
         else:
             cf2stop = False
