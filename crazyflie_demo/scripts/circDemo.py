@@ -1,9 +1,13 @@
+#!/usr/bin/env python
+
 #Drone 1: Forward/backward; (0,-0.6,0.4) <-> (0,0.6,0.4)
 #Drone 2: Circle, center(0,0,0.4) radius(0.6). 
 #Drone 2 stops + hovers when Drone 1 is near endpoints, (within 0.2?)
 import rospy
 import tf
+from crazyflie_driver.msg import Position
 from crazyflie_driver.msg import Hover
+from crazyflie_driver.msg import GenericLogData
 from std_msgs.msg import Empty
 from crazyflie_driver.srv import UpdateParams
 from threading import Thread
@@ -69,8 +73,21 @@ class Crazyflie:
 def dist(v1, v2):
     return abs( (v1[0] - v2[0])**2 + (v1[1]-v2[1])**2 + (v1[2] - v1[2])**2 )**(0.5)
 
+def ylineNext(height, r, step, steps):
+    x = 0
+    direct = 1
+    #step = 0 is intersect1, y=-r
+    #step = steps/2 is intersect2, y=+r
+    if step > steps/2:
+        direct = -1
+        step -= steps/2
+    y = -r+r*4*step/steps
+    y = y*direct
+    return [x, y, height, 0]
+    
+
 def circNext(height, r, step, steps):
-    angle = 2*pi*step/steps
+    angle = 2*math.pi*step/steps
     x = r*math.cos(angle)
     y = r*math.sin(angle)
     yaw = angle
@@ -85,13 +102,13 @@ def cf2task(cf):
     cf2setpoint = [0.6, 0, 0.4, 0]
     cf2nextIntersect = [0, 0.6, 0.4, 0]
     #Take off
-    #cf.goToSetpoint([0, 0, 0.4, 0])
+    cf.goToSetpoint([0, 0, 0.4, 0])
     radius = 0.6
     currentStep = 0
-    divisions = 30
+    divisions = 90
     stay = False
     while(True):
-        if (dist(cf2nextIntersect, cf2pos) < 0.1):
+        '''if (dist(cf2nextIntersect, cf2pos) < 0.1):
             cf2nextIntersect[1] *= -1
         if cf2stop and cf2nextIntersect[1] == cf1setpoint:
             d = dist(cf2pos, cf1setpoint)
@@ -102,7 +119,13 @@ def cf2task(cf):
         else:
             cf2setpoint = circNext(cf2setpoint[2], radius, currentStep, divisions)
             currentStep = currentStep + 1
-            cf.goToSetpoint(cf2setpoint)
+            cf.goToSetpoint(cf2setpoint)'''
+        #CIRCLE
+        #cf2setpoint = circNext(cf2setpoint[2], radius, currentStep, divisions)
+        #LINE
+        cf2setpoint = ylineNext(cf2setpoint[2], radius, currentStep, divisions)
+        currentStep = currentStep + 1 % divisions
+        cf.goToSetpoint(cf2setpoint)
         rate.sleep()
     return
 
@@ -112,7 +135,7 @@ def cf1task(cf):
     cf1pos = [0,0,0,0]
     #1=>going toward y=0.6, -1=>going toward y=-0.6
     direction = 1
-    cf1setpoint = [0, 0.6, 0.4, 0]
+    cf1setpoint = [0, -0.6, 0.4, 0]
     #take off
     cf.goToSetpoint([0, 0, 0.4, 0])
     while(True):
@@ -132,15 +155,15 @@ def cf1task(cf):
 if __name__ == '__main__':
     rospy.init_node('position', anonymous=True)
 
-    cf1 = Crazyflie("cf1")
+    #cf1 = Crazyflie("cf1")
     cf2 = Crazyflie("cf2")
-    rospy.Subscriber("log1", GenericLogData, callback_cf1pos)
+    #rospy.Subscriber("log1", GenericLogData, callback_cf1pos)
     rospy.Subscriber("log2", GenericLogData, callback_cf2pos)
-    t1 = Thread(target=cf1task, args=(cf1,))
+    #t1 = Thread(target=cf1task, args=(cf1,))
     t2 = Thread(target=cf2task, args=(cf2,))
-    t1.start()
+    #t1.start()
     t2.start()
-    t1.join()
+    #t1.join()
     t2.join()
 
 

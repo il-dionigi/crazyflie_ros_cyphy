@@ -1,0 +1,27 @@
+Ros stuff:
+To get ros installed, follow the turotials from ros kinetic, and on whoenigs paper (link)[http://act.usc.edu/publications/Hoenig_Springer_ROS2017.pdf]
+After installation, remember to catkin_make in the crazyflie_ws to build the code
+If you change C code, you must catkin_make. If you change python code or launch files, you don't have To
+If you create a new python file, you must chmod it to have execute permission
+If you have a libusb error, try add a rule to your rules.d file
+If you get a what() timeout error, this usually means the connection failed because it could not find
+the drone, you must change the address in the launch file
+To run a launch file, make sure roscore is running (roscore in terminal), then you can roslaunch <dir> <file>
+e.g. roslaunch crazyflie_demo interface.launch
+
+About ros topics: 
+Ros uses topics to manage shared data; one 'node' or process can publish data as a msg to a topic,
+then another node can get that data by subscribing. An example of a subscriber/publisher can be found in interface.py,
+It subscribes to the location data that the server gets from the drone, and it publishes data the server should send
+
+About the code:
+the launch files uses crazyflie_add to add the crazyflie based on its uri and then calls crazyflie_server
+and the python script. The server is in direct communication with the drone; it gets messages to send based on the
+subscribed topics, i.e. based on which topic the python code publishes to. 
+
+Other useful ros commands:
+rosrun crazyflie_tools <tool> (e.g. scan, which scans)
+rostopic echo <topic> (echo's all data published to topic)
+rostopic list -v (lists all topics + how many subscribers/publishers)
+rostopic info <topic> (lists which nodes are published/subscribed)
+rosrun rqt_graph rqt_graph (shows a graph of publishers and subcribers, can be a little misleading at times)
