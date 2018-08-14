@@ -509,6 +509,8 @@ void Crazyflie::requestLogToc(bool forceNoCache)
   size_t len = getRequestResult<crtpLogGetInfoResponse>(0)->log_len;
   uint32_t crc = getRequestResult<crtpLogGetInfoResponse>(0)->log_crc;
 
+  printf("In request log toc.\n*******\n");
+
   // check if it is in the cache
   std::string fileName = "log" + std::to_string(crc) + ".csv";
   std::ifstream infile(fileName);

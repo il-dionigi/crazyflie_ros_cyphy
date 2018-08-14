@@ -492,10 +492,13 @@ void cmdSendSetpoint(
       m_cf.setEmptyAckCallback(cb_ack);
 
       ROS_INFO("Requesting Logging variables...");
+      ROS_INFO("Requesting Logging variablesx3.");
+
       m_cf.requestLogToc();
 
       if (m_enable_logging_imu) {
         std::function<void(uint32_t, logImu*)> cb = std::bind(&CrazyflieROS::onImuData, this, std::placeholders::_1, std::placeholders::_2);
+        ROS_INFO("Requesting acc+gyro");
 
         logBlockImu.reset(new LogBlock<logImu>(
           &m_cf,{
