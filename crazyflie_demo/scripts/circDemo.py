@@ -99,13 +99,13 @@ def cf2task(cf):
     cf2pos = [0,0,0,0]
     cf2setpoint = []
     #start setpoint, go to 0,6, 0, 0.4
-    cf2setpoint = [0.6, 0, 0.4, 0]
+    cf2setpoint = [0, -0.6, 0.4, 0]
     cf2nextIntersect = [0, 0.6, 0.4, 0]
     #Take off
     cf.goToSetpoint([0, 0, 0.4, 0])
     radius = 0.6
     currentStep = 0
-    divisions = 90
+    divisions = 300
     stay = False
     while(True):
         '''if (dist(cf2nextIntersect, cf2pos) < 0.1):

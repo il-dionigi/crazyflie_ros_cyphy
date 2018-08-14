@@ -16,7 +16,7 @@
       <rosparam>
         genericLogTopics: ["log1"]
         genericLogTopicFrequencies: [100]
-        genericLogTopic_log1_Variables: ["stateEstimate.x", "stateEstimate.y", "stateEstimate.z"]
+        genericLogTopic_log1_Variables: ["kalman.stateX", "kalman.stateY", "kalman.stateZ"]
       </rosparam>
     </node>
   </group>
@@ -31,7 +31,7 @@
       <rosparam>
         genericLogTopics: ["log2"]
         genericLogTopicFrequencies: [100]
-        genericLogTopic_log2_Variables: ["stateEstimate.x", "stateEstimate.y", "stateEstimate.z"]
+        genericLogTopic_log2_Variables: ["kalman.stateX", "kalman.stateY", "kalman.stateZ"]
       </rosparam>
     </node> 
   </group>
