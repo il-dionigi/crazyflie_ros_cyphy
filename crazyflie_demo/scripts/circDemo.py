@@ -11,6 +11,20 @@ import math
 
 cf2stop = False
 cf1setpoint = []
+cf1pos = [0,0,0,0]
+cf2pos = [0,0,0,0]
+
+def callback_cf1pos(data):
+    global cf1pos
+    cf1pos[0] = data.values[0]
+    cf1pos[1] = data.values[1]
+    cf1pos[2] = data.values[2]
+
+def callback_cf2pos(data):
+    global cf2pos
+    cf2pos[0] = data.values[0]
+    cf2pos[1] = data.values[1]
+    cf2pos[2] = data.values[2]
 
 class Crazyflie:
     def __init__(self, prefix):
@@ -63,7 +77,7 @@ def circNext(height, r, step, steps):
     return [x, y, height, yaw]
 
 def cf2task(cf):
-    global cf2stop, cf1setpoint
+    global cf2stop, cf1setpoint, cf2pos
     rate = rospy.Rate(10)
     cf2pos = [0,0,0,0]
     cf2setpoint = []
@@ -93,7 +107,7 @@ def cf2task(cf):
     return
 
 def cf1task(cf):
-    global cf2stop, cf1setpoint
+    global cf2stop, cf1setpoint, cf1pos
     rate = rospy.Rate(10)
     cf1pos = [0,0,0,0]
     #1=>going toward y=0.6, -1=>going toward y=-0.6
@@ -120,7 +134,8 @@ if __name__ == '__main__':
 
     cf1 = Crazyflie("cf1")
     cf2 = Crazyflie("cf2")
-
+    rospy.Subscriber("log1", GenericLogData, callback_cf1pos)
+    rospy.Subscriber("log2", GenericLogData, callback_cf2pos)
     t1 = Thread(target=cf1task, args=(cf1,))
     t2 = Thread(target=cf2task, args=(cf2,))
     t1.start()

@@ -13,11 +13,12 @@
       <param name="uri" value="$(arg uri1)" />
       <param name="tf_prefix" value="cf1" />
       <param name="enable_logging" value="True" />
-<!--       <rosparam>
+      <param name="enable_logging_imu" value="True" />
+      <rosparam>
         genericLogTopics: ["log1"]
-        genericLogTopicFrequencies: [10]
-        genericLogTopic_log1_Variables: ["ctrltarget.yaw", "stabilizer.yaw"]
-      </rosparam> -->
+        genericLogTopicFrequencies: [100]
+        genericLogTopic_log1_Variables: ["stateEstimate.x", "stateEstimate.y", "stateEstimate.z"]
+      </rosparam>
     </node>
     <!-- <node pkg="rqt_plot" type="rqt_plot" name="rqt_plot_x" args="log1/values[0] log1/values[1]"/> -->
   </group>
@@ -28,15 +29,12 @@
       <param name="uri" value="$(arg uri2)" />
       <param name="tf_prefix" value="cf2" />
       <param name="enable_logging" value="True" />
-<!--       <rosparam>
-        genericLogTopics: ["log1"]
-        genericLogTopicFrequencies: [10]
-        genericLogTopic_log1_Variables: ["ctrltarget.yaw", "stabilizer.yaw"]
-      </rosparam> -->
-    <!--</node>-->
-    <!-- <node pkg="rqt_plot" type="rqt_plot" name="rqt_plot_x" args="log1/values[0] log1/values[1]"/> -->
-
-    <!-- <node name="crazyflie_demo_hover" pkg="crazyflie_demo" type="Hover.py" output="screen"> -->
+      <param name="enable_logging_imu" value="True" />
+      <rosparam>
+        genericLogTopics: ["log2"]
+        genericLogTopicFrequencies: [100]
+        genericLogTopic_log2_Variables: ["stateEstimate.x", "stateEstimate.y", "stateEstimate.z"]
+      </rosparam>
     </node> 
   </group>
 
