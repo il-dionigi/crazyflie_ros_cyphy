@@ -14,7 +14,7 @@ from threading import Thread
 import math
 
 cf2stop = False
-cf1setpoint = []
+cf1nextInteresect = []
 cf1pos = [0,0,0,0]
 cf2pos = [0,0,0,0]
 
@@ -94,7 +94,7 @@ def circNext(height, r, step, steps):
     return [x, y, height, yaw]
 
 def cf2task(cf):
-    global cf2stop, cf1setpoint, cf2pos
+    global cf2stop, cf1nextInteresect, cf2pos
     rate = rospy.Rate(10)
     cf2pos = [0,0,0,0]
     cf2setpoint = []
@@ -114,8 +114,8 @@ def cf2task(cf):
     while(True):
         if (dist(cf2nextIntersect, cf2pos) < 0.1):
             cf2nextIntersect[1] *= -1
-        if cf2stop and cf2nextIntersect[1] == cf1setpoint:
-            d = dist(cf2pos, cf1setpoint)
+        if cf2stop and cf2nextIntersect[1] == cf1nextInteresect[1]:
+            d = dist(cf2pos, cf1nextInteresect)
             if (0.1 < d < 0.2):
                 stay = True 
         if (stay):
@@ -125,11 +125,12 @@ def cf2task(cf):
             currentStep = currentStep + 1
             cf.goToSetpoint(cf2setpoint)
         #CIRCLE
+        print("CF2: internal,goal \n" + str(cf2pos) + "," + str(cf2setpoint) )
         rate.sleep()
     return
 
 def cf1task(cf):
-    global cf2stop, cf1setpoint, cf1pos
+    global cf2stop, cf1nextInteresect, cf1pos
     rate = rospy.Rate(10)
     cf1pos = [0,0,0,0]
     #1=>going toward y=0.6, -1=>going toward y=-0.6
@@ -151,6 +152,7 @@ def cf1task(cf):
             cf2stop = True
         else:
             cf2stop = False
+        print("CF1: internal,goal \n" + str(cf1pos) + "," + str(cf1setpoint) )
         rate.sleep()
     return
 
