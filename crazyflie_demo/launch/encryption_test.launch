@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <launch>
-  <arg name="uri" default="radio://0/70/2M/E7E7E7E7E1" />
+  <arg name="uri" default="radio://0/30/2M/E7E7E7E7E2" />
 
   <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch">
   </include>
@@ -9,7 +9,7 @@
   <group ns="cf">
     <node pkg="crazyflie_driver" type="crazyflie_add" name="crazyflie_add" output="screen">
       <param name="uri" value="$(arg uri)" />
-      <param name="tf_prefix" value="crazyflie" />
+      <param name="tf_prefix" value="cf" />
       <param name="enable_logging" value="True" />
       <param name="enable_logging_imu" value="True" />
       <rosparam>

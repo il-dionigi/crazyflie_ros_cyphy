@@ -183,8 +183,8 @@ if __name__ == '__main__':
 
     cf1 = Crazyflie("cf1")
     cf2 = Crazyflie("cf2")
-    rospy.Subscriber("log1", GenericLogData, callback_cf1pos)
-    rospy.Subscriber("log2", GenericLogData, callback_cf2pos)
+    rospy.Subscriber("cf1/log1", GenericLogData, callback_cf1pos)
+    rospy.Subscriber("cf2/log2", GenericLogData, callback_cf2pos)
     print("STARTING THREADS")
     t1 = Thread(target=cf1task, args=(cf1,))
     t2 = Thread(target=cf2task, args=(cf2,))

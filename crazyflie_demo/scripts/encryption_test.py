@@ -16,6 +16,7 @@ MAX_DISTANCE = 1.22
 
 def callback_cf_pos(data):
     global cfPos
+    print("internal " + str(cfPos))
     cfPos[0] = data.values[0]
     cfPos[1] = data.values[1]
     cfPos[2] = data.values[2]
@@ -92,6 +93,7 @@ def cf_task(cf):
     currentStep = 0
     divisions = 300
     while(currentStep < (2 * divisions) ):
+        print("goal " + str(cfSetpoint))
         cfSetpoint = slitherNext(cfSetpoint[2], radius, currentStep, divisions)
         currentStep = currentStep + 1
         cf.goToSetpoint(cfSetpoint)
@@ -103,5 +105,6 @@ if __name__ == '__main__':
     rospy.init_node('position', anonymous=True)
 
     cf = Crazyflie("cf")
-    rospy.Subscriber("log", GenericLogData, callback_cf_pos)
+    print("CF!")
+    rospy.Subscriber("cf/log", GenericLogData, callback_cf_pos)
     cf_task(cf)
