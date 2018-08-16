@@ -23,14 +23,12 @@ def callback_cf1pos(data):
     cf1pos[0] = data.values[0]
     cf1pos[1] = data.values[1]
     cf1pos[2] = data.values[2]
-    print("cf1 " + str(cf1pos))
 
 def callback_cf2pos(data):
     global cf2pos
     cf2pos[0] = data.values[0]
     cf2pos[1] = data.values[1]
     cf2pos[2] = data.values[2]
-    print("cf2 " + str(cf2pos))
 
 
 class Crazyflie:
@@ -106,22 +104,21 @@ def cf2task(cf):
     rate = rospy.Rate(5)
     cf2pos = [0,0,0,0]
     cf2setpoint = []
-    #start setpoint, go to 0,6, 0, 0.4
+    #start setpoint, go to 0,6, 0, 0.6
     cf2setpoint = [0, -0.6, 0.4, 0]
     cf2nextIntersect = [0, 0.6, 0.4, 0]
     #Take off
     #cf.goToSetpoint([0, 0, 0.4, 0])
-    radius = 0.6
+    radius = 0.7
     currentStep = 0
     divisions = 90
     stay = False
     #FOR TESTING PURPOSES:
-    for i in range(10000):
+    for i in range(10):
         rate.sleep()
-        if (i &10 == 0):
-            print("c2dot")
     for i in range(200):
         cf2setpoint = circNext(cf2setpoint[2], radius, currentStep, divisions)
+        cf2setpoint[2] += 0.2/200
         cf.goToSetpoint(cf2setpoint)
         rate.sleep()
     while(True):
@@ -131,6 +128,8 @@ def cf2task(cf):
             d = dist(cf2pos, cf1nextInteresect)
             if (0.1 < d < 0.2):
                 stay = True 
+        if (dist(cf2pos, cf1pos) > 0.2):
+            stay = False
         if (stay):
             cf.goToSetpoint(cf2pos) #stay at position
         else:
@@ -138,7 +137,6 @@ def cf2task(cf):
             currentStep = currentStep + 1
             cf.goToSetpoint(cf2setpoint)
         #CIRCLE
-        print("CF2: internal,goal \n" + str(cf2pos) + "," + str(cf2setpoint) )
         rate.sleep()
     return
 
@@ -149,20 +147,21 @@ def cf1task(cf):
     #1=>going toward y=0.6, -1=>going toward y=-0.6
     direction = 1
     radius = 0.6
-    currentStep = 75
-    divisions = 300
+    divisions = 150
+    currentStep = divisions/4
     cf1nextInteresect = [0,0.6,0.4,0]
     cf1setpoint = ylineNext(cf1nextInteresect[2], radius, currentStep, divisions)
     #FOR TESTING PURPOSES:
-    for i in range(10000):
+    for i in range(30):
+        print("internal/goal" + str(cf1pos) + "/[0,0,0,0]") 
         rate.sleep()
-        if (i &10 == 0):
-            print("c1dot")
     #take off
     for i in range(40):
+        print("internal/goal" + str(cf1pos) + "/[0,0,0.4,0]") 
         cf.goToSetpoint([0, 0, 0.4, 0])
         rate.sleep()
     while(True):
+        print("internal/goal" + str(cf1pos) + "/" + str(cf1setpoint)) 
         cf1setpoint = ylineNext(cf1nextInteresect[2], radius, currentStep, divisions)
         direction = getDirect(currentStep, divisions)
         currentStep = currentStep + 1 % divisions
@@ -173,7 +172,6 @@ def cf1task(cf):
             cf2stop = True
         else:
             cf2stop = False
-        print("CF1: internal,goal \n" + str(cf1pos) + "," + str(cf1setpoint) )
         rate.sleep()
     return
 
