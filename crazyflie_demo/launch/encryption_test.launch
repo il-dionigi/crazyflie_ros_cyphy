@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <launch>
-  <arg name="uri" default="radio://0/80/2M/E7E7E7E7E8" />
+  <arg name="uri" default="radio://0/70/2M/E7E7E7E7E1" />
   
   <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch">
   </include>
@@ -20,7 +20,7 @@
     </node>
   </group>
 
-    <node name="crazyflie_demo_circle" pkg="crazyflie_demo" type="circDemo.py" output="screen">
+    <node name="crazyflie_demo_encryption" pkg="crazyflie_demo" type="encryption_test.py" output="screen">
     </node>
 
 </launch>
