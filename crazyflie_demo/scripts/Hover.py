@@ -159,8 +159,8 @@ class Crazyflie:
         self.stop_pub.publish(self.stop_msg)
 
 def handler(cf):
-    cf.takeOff(0.4)
-    cf.goTo(0.4, 0.1, 0.2, 0)
+    # cf.takeOff(0.4)
+    cf.goTo(0.2, 0.2, 0.4, 0)
     cf.land()
 
 if __name__ == '__main__':

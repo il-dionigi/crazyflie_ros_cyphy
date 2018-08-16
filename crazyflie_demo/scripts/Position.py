@@ -27,7 +27,7 @@ if __name__ == '__main__':
     stop_pub = rospy.Publisher("cmd_stop", Empty, queue_size=1)
     stop_msg = Empty()
 
-    '''rospy.wait_for_service('update_params')
+    rospy.wait_for_service('update_params')
     rospy.loginfo("found update_params service")
     update_params = rospy.ServiceProxy('update_params', UpdateParams)
 
@@ -35,43 +35,46 @@ if __name__ == '__main__':
     update_params(["kalman/resetEstimation"])
     rospy.sleep(0.1)
     rospy.set_param("kalman/resetEstimation", 0)
-    update_params(["kalman/resetEstimation"])'''
+    update_params(["kalman/resetEstimation"])
+    rospy.sleep(0.1)
+    rospy.set_param("flightmode/posSet", 1)
+    update_params(["flightmode/posSet"])
     rospy.sleep(0.5)
-    rospy.loginfo("START TAKEOFF...")
+    # rospy.loginfo("START TAKEOFF...")
     # take off
-    while not rospy.is_shutdown():
-        for y in range(10):
-            msg.x = 0.0
-            msg.y = 0.0
-            msg.yaw = 0.0
-            msg.z = y / 25.0
-            now = rospy.get_time()
-            msg.header.seq += 1
-            msg.header.stamp = rospy.Time.now()
-            rospy.loginfo("sending...(T0)")
-            #rospy.loginfo(msg.x)
-            #rospy.loginfo(msg.y)
-            #rospy.loginfo(msg.z)
-            #rospy.loginfo(msg.yaw)
-            # rospy.loginfo(now)
-            pub.publish(msg)
-            rate.sleep()
-        for y in range(20):
-            msg.x = 0.0
-            msg.y = 0.0
-            msg.yaw = 0.0
-            msg.z = 0.4
-            msg.header.seq += 1
-            msg.header.stamp = rospy.Time.now()
-            rospy.loginfo("sending...(T1)")
-            #rospy.loginfo(msg.x)
-            #rospy.loginfo(msg.y)
-            #rospy.loginfo(msg.z)
-            #rospy.loginfo(msg.yaw)
-            # rospy.loginfo(now)
-            pub.publish(msg)
-            rate.sleep()
-        break
+    # while not rospy.is_shutdown():
+    #     for y in range(10):
+    #         msg.x = 0.0
+    #         msg.y = 0.0
+    #         msg.yaw = 0.0
+    #         msg.z = y / 25.0
+    #         now = rospy.get_time()
+    #         msg.header.seq += 1
+    #         msg.header.stamp = rospy.Time.now()
+    #         rospy.loginfo("sending...(T0)")
+    #         #rospy.loginfo(msg.x)
+    #         #rospy.loginfo(msg.y)
+    #         #rospy.loginfo(msg.z)
+    #         #rospy.loginfo(msg.yaw)
+    #         # rospy.loginfo(now)
+    #         pub.publish(msg)
+    #         rate.sleep()
+    #     for y in range(20):
+    #         msg.x = 0.0
+    #         msg.y = 0.0
+    #         msg.yaw = 0.0
+    #         msg.z = 0.4
+    #         msg.header.seq += 1
+    #         msg.header.stamp = rospy.Time.now()
+    #         rospy.loginfo("sending...(T1)")
+    #         #rospy.loginfo(msg.x)
+    #         #rospy.loginfo(msg.y)
+    #         #rospy.loginfo(msg.z)
+    #         #rospy.loginfo(msg.yaw)
+    #         # rospy.loginfo(now)
+    #         pub.publish(msg)
+    #         rate.sleep()
+    #     break
 
     # go to x: 0.2 y: 0.2
     start = rospy.get_time()
