@@ -2,7 +2,7 @@
 
 <launch>
   <!-- <arg name="uri" default="usb://0" /> -->
-  <arg name="uri" default="radio://0/80/2M/E7E7E7E7E8" /> 
+  <arg name="uri" default="radio://0/70/2M/E7E7E7E7E1" /> 
   <!--85 is dr. One -->
   <!-- 80 = RB, 80 = nameless as well. nameless can't be changed (not sure why)-->
   <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch">

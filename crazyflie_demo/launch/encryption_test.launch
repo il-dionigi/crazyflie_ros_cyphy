@@ -2,11 +2,11 @@
 
 <launch>
   <arg name="uri" default="radio://0/70/2M/E7E7E7E7E1" />
-  
+
   <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch">
   </include>
    
-  <group ns="cf1">
+  <group ns="cf">
     <node pkg="crazyflie_driver" type="crazyflie_add" name="crazyflie_add" output="screen">
       <param name="uri" value="$(arg uri)" />
       <param name="tf_prefix" value="crazyflie" />
@@ -15,7 +15,7 @@
       <rosparam>
         genericLogTopics: ["log"]
         genericLogTopicFrequencies: [100]
-        genericLogTopic_log1_Variables: ["kalman.stateX", "kalman.stateY", "kalman.stateZ"]
+        genericLogTopic_log_Variables: ["kalman.stateX", "kalman.stateY", "kalman.stateZ"]
       </rosparam>
     </node>
   </group>

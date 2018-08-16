@@ -103,5 +103,5 @@ if __name__ == '__main__':
     rospy.init_node('position', anonymous=True)
 
     cf = Crazyflie("cf")
-    rospy.Subscriber("log", GenericLogData, callback_cf1pos)
+    rospy.Subscriber("log", GenericLogData, callback_cf_pos)
     cf_task(cf)
