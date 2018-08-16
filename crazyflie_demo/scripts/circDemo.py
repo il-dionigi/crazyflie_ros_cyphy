@@ -23,19 +23,22 @@ def callback_cf1pos(data):
     cf1pos[0] = data.values[0]
     cf1pos[1] = data.values[1]
     cf1pos[2] = data.values[2]
+    print("cf1 " + str(cf1pos))
 
 def callback_cf2pos(data):
     global cf2pos
     cf2pos[0] = data.values[0]
     cf2pos[1] = data.values[1]
     cf2pos[2] = data.values[2]
+    print("cf2 " + str(cf2pos))
+
 
 class Crazyflie:
     def __init__(self, prefix):
         self.prefix = prefix
 
         worldFrame = rospy.get_param("~worldFrame", "/world")
-        self.rate = rospy.Rate(10)
+        self.rate = rospy.Rate(5)
 
         rospy.wait_for_service(prefix + '/update_params')
         rospy.loginfo("found update_params service")
@@ -83,8 +86,13 @@ def ylineNext(height, r, step, steps):
         step -= steps/2
     y = -r+r*4*step/steps
     y = y*direct
-    return [x, y, height, 0], direct
+    return [x, y, height, 0]
     
+def getDirect(step, steps):
+    direct = 1
+    if step > steps/2:
+        direct = -1
+    return direct
 
 def circNext(height, r, step, steps):
     angle = 2*math.pi*step/steps
@@ -95,7 +103,7 @@ def circNext(height, r, step, steps):
 
 def cf2task(cf):
     global cf2stop, cf1nextInteresect, cf2pos
-    rate = rospy.Rate(10)
+    rate = rospy.Rate(5)
     cf2pos = [0,0,0,0]
     cf2setpoint = []
     #start setpoint, go to 0,6, 0, 0.4
@@ -107,7 +115,12 @@ def cf2task(cf):
     currentStep = 0
     divisions = 90
     stay = False
-    for i in range(20):
+    #FOR TESTING PURPOSES:
+    for i in range(10000):
+        rate.sleep()
+        if (i &10 == 0):
+            print("c2dot")
+    for i in range(200):
         cf2setpoint = circNext(cf2setpoint[2], radius, currentStep, divisions)
         cf.goToSetpoint(cf2setpoint)
         rate.sleep()
@@ -131,19 +144,27 @@ def cf2task(cf):
 
 def cf1task(cf):
     global cf2stop, cf1nextInteresect, cf1pos
-    rate = rospy.Rate(10)
+    rate = rospy.Rate(5)
     cf1pos = [0,0,0,0]
     #1=>going toward y=0.6, -1=>going toward y=-0.6
     direction = 1
     radius = 0.6
     currentStep = 75
     divisions = 300
-    cf1setpoint = ylineNext(height, radius, currentStep, divisions)
     cf1nextInteresect = [0,0.6,0.4,0]
+    cf1setpoint = ylineNext(cf1nextInteresect[2], radius, currentStep, divisions)
+    #FOR TESTING PURPOSES:
+    for i in range(10000):
+        rate.sleep()
+        if (i &10 == 0):
+            print("c1dot")
     #take off
-    cf.goToSetpoint([0, 0, 0.4, 0])
+    for i in range(40):
+        cf.goToSetpoint([0, 0, 0.4, 0])
+        rate.sleep()
     while(True):
-        cf1setpoint, direction = ylineNext(height, radius, currentStep, divisions)
+        cf1setpoint = ylineNext(cf1nextInteresect[2], radius, currentStep, divisions)
+        direction = getDirect(currentStep, divisions)
         currentStep = currentStep + 1 % divisions
         cf.goToSetpoint(cf1setpoint)
         cf1nextInteresect[1] *= direction
@@ -160,15 +181,16 @@ def cf1task(cf):
 if __name__ == '__main__':
     rospy.init_node('position', anonymous=True)
 
-    #cf1 = Crazyflie("cf1")
+    cf1 = Crazyflie("cf1")
     cf2 = Crazyflie("cf2")
-    #rospy.Subscriber("log1", GenericLogData, callback_cf1pos)
+    rospy.Subscriber("log1", GenericLogData, callback_cf1pos)
     rospy.Subscriber("log2", GenericLogData, callback_cf2pos)
-    #t1 = Thread(target=cf1task, args=(cf1,))
+    print("STARTING THREADS")
+    t1 = Thread(target=cf1task, args=(cf1,))
     t2 = Thread(target=cf2task, args=(cf2,))
-    #t1.start()
+    t1.start()
     t2.start()
-    #t1.join()
+    t1.join()
     t2.join()
 
 
