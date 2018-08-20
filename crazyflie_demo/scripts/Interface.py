@@ -125,7 +125,7 @@ if __name__ == '__main__':
     msgPublisher.start()
     rospy.loginfo("START TAKEOFF...")
     # take off
-    positionMove([0,0,0.4,0],2)
+    positionMove([0,0,0,0],2)
 
     print("What would you like to do?\n")
     timeAlloted = 3

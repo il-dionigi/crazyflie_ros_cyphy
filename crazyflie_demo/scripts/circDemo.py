@@ -113,12 +113,6 @@ def cf2task(cf):
     global cf2stop, cf1nextInteresect, cf2pos, cf1pos
     rate = rospy.Rate(5)
     #TEST POS
-    while True:
-        print("c1pos: " + str(cf1pos))
-        print("c2pos: " + str(cf2pos))
-        print("dist: " + str(dist(cf1pos, cf2pos)))
-        rate.sleep()
-
     cf2pos = [0,0,0,0]
     cf2setpoint = []
     #start setpoint, go to 0,6, 0, 0.6
@@ -128,7 +122,7 @@ def cf2task(cf):
     #cf.goToSetpoint([0, 0, 0.4, 0])
     radius = 0.6
     currentStep = 0
-    divisions = 90
+    divisions = 180
     stay = False
     #FOR TESTING PURPOSES:
     #CIRCLE STARTS AT x =+, THEN GOES TO y =+
@@ -139,7 +133,13 @@ def cf2task(cf):
         cf.goToSetpoint(cf2setpoint)
         rate.sleep()
     while(True):
-        print("c2 error " + getError(cf2pos, cf2setpoint))
+        if cf2nextIntersect[1] > 0:
+            print("circle going to y++")
+        else:
+            print("circle going to y--")
+        error = dist(getError(cf2pos, cf2setpoint), [0,0,0,0])
+        print("c2 error " + error)
+        stay = False
         if (dist(cf2nextIntersect, cf2pos) < 0.1):
             cf2nextIntersect[1] *= -1
         if cf2stop and cf2nextIntersect[1] == cf1nextInteresect[1]:
@@ -148,6 +148,9 @@ def cf2task(cf):
                 stay = True 
         d = dist(cf2pos, cf1pos)
         print("distance between drones: " + str(d))
+        if error > 0.2:
+            print("error is bad, will stay")
+            stay = True
         if (d > 0.15):
             stay = False
         elif d < 0.1:
@@ -169,17 +172,13 @@ def cf1task(cf):
     global cf2stop, cf1nextInteresect, cf1pos
     rate = rospy.Rate(4)
     cf1pos = [0,0,0,0]
-    i = 1
-    while True:
-        print("."*i)
-        i = (i%4) + 1
-        rate.sleep()
     #1=>going toward y=0.6, -1=>going toward y=-0.6
     direction = 1
     radius = 0.6
-    divisions = 100
+    divisions = 150
     currentStep = 0
     cf1nextInteresect = [0,0.6,0.4,0]
+    stay = False
     cf1setpoint = ylineNext(cf1nextInteresect[2], radius, currentStep, divisions)
     #FOR TESTING PURPOSES:
     for i in range(30):
@@ -191,13 +190,23 @@ def cf1task(cf):
         cf.goToSetpoint([0, 0, 0.4, 0])
         rate.sleep()
     while(True):
-        print("c1 error " + getError(cf1pos, cf1setpoint))
+        error = dist(getError(cf1pos, cf1setpoint), [0,0,0,0])
+        print("c1 error " + str(error))
+        stay = False
+        if (error > 0.1):
+            print("Error bad. will stay")
+            stay = True
         #print("internal/goal" + str(cf1pos) + "/" + str(cf1setpoint)) 
         cf1setpoint = ylineNext(cf1nextInteresect[2], radius, currentStep, divisions)
         direction = getDirect(currentStep, divisions)
-        currentStep = (currentStep + 1) % divisions
+        if not stay:
+            currentStep = (currentStep + 1) % divisions
         cf.goToSetpoint(cf1setpoint)
         cf1nextInteresect[1] = direction*radius
+        if (direction == 1):
+            print("Line going to y+++")
+        else:
+            print("Line going to y---")
         #find out internal position, set cf1pos
         if ( dist(cf1pos, cf1nextInteresect) < 0.1):
             cf2stop = True
