@@ -160,7 +160,7 @@ def cf2task(cf):
             cf.goToSetpoint(cf2setpoint) #stay at position
         else:
             cf2setpoint = circNext(cf2setpoint[2], radius, currentStep, divisions)
-            currentStep = currentStep + 1
+            currentStep = (currentStep + 1 ) % divisions
             cf.goToSetpoint(cf2setpoint)
         #CIRCLE
         rate.sleep()
