@@ -107,7 +107,7 @@ def getError(actual, theoretical):
     for i in range(len(Err)):
         Err[i] =  actual[i] - theoretical[i]
         Err[i] = int(Err[i]*1000)/1000.0
-    return (str(Err))
+    return (Err)
 
 def cf2task(cf):
     global cf2stop, cf1nextInteresect, cf2pos, cf1pos
@@ -138,29 +138,27 @@ def cf2task(cf):
         else:
             print("circle going to y--")
         error = dist(getError(cf2pos, cf2setpoint), [0,0,0,0])
-        print("c2 error " + error)
+        print("**c2 error " + str(error))
         stay = False
-        if (dist(cf2nextIntersect, cf2pos) < 0.1):
-            cf2nextIntersect[1] *= -1
+        #get nextIntersect, but skew it so if it is too close it will keep on moving
+        cf2nextIntersect[1] = -1*radius if divsions/4 < currentStep+divisions/20 < 3*divsions/4 else radius
         if cf2stop and cf2nextIntersect[1] == cf1nextInteresect[1]:
             d = dist(cf2pos, cf1nextInteresect)
             if (d < 0.15):
                 stay = True 
         d = dist(cf2pos, cf1pos)
         print("distance between drones: " + str(d))
-        if error > 0.2:
-            print("error is bad, will stay")
-            stay = True
         if (d > 0.15):
             stay = False
         elif d < 0.1:
             print("CRASH PREVENTSION")
             cf2setpoint[2] = 0.7
+        if error > 0.12:
+            print("error is bad, circle will stay")
+            stay = True
         if (stay):
-            print("Stay. Dist is " + str(d))
-            cf.goToSetpoint(cf2pos) #stay at position
+            cf.goToSetpoint(cf2setpoint) #stay at position
         else:
-            print("not staying")
             cf2setpoint = circNext(cf2setpoint[2], radius, currentStep, divisions)
             currentStep = currentStep + 1
             cf.goToSetpoint(cf2setpoint)
@@ -191,10 +189,10 @@ def cf1task(cf):
         rate.sleep()
     while(True):
         error = dist(getError(cf1pos, cf1setpoint), [0,0,0,0])
-        print("c1 error " + str(error))
+        print("*c1 error " + str(error))
         stay = False
-        if (error > 0.1):
-            print("Error bad. will stay")
+        if (error > 0.13):
+            print("Error bad. line will stay")
             stay = True
         #print("internal/goal" + str(cf1pos) + "/" + str(cf1setpoint)) 
         cf1setpoint = ylineNext(cf1nextInteresect[2], radius, currentStep, divisions)
