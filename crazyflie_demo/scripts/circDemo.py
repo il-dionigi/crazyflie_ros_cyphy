@@ -122,12 +122,10 @@ def cf2task(cf):
     #cf.goToSetpoint([0, 0, 0.4, 0])
     radius = 0.6
     currentStep = 0
-    divisions = 180
+    divisions = 120
     stay = False
     #FOR TESTING PURPOSES:
     #CIRCLE STARTS AT x =+, THEN GOES TO y =+
-    for i in range(10):
-        rate.sleep()
     for i in range(20):
         cf2setpoint = circNext(cf2setpoint[2], radius, currentStep, divisions)
         cf.goToSetpoint(cf2setpoint)
@@ -150,9 +148,9 @@ def cf2task(cf):
         print("distance between drones: " + str(d))
         if (d > 0.15):
             stay = False
-        elif d < 0.1:
-            print("CRASH PREVENTSION")
-            cf2setpoint[2] = 0.7
+        elif d < 0.05:
+            print("CRASH PREVENTION")
+            cf2setpoint[2] = 0
         if error > 0.12:
             print("error is bad, circle will stay")
             stay = True
@@ -168,19 +166,20 @@ def cf2task(cf):
 
 def cf1task(cf):
     global cf2stop, cf1nextInteresect, cf1pos
-    rate = rospy.Rate(4)
+    rate = rospy.Rate(5)
     cf1pos = [0,0,0,0]
     #1=>going toward y=0.6, -1=>going toward y=-0.6
     direction = 1
     radius = 0.6
-    divisions = 150
+    divisions = 75
     currentStep = 0
     cf1nextInteresect = [0,0.6,0.4,0]
     stay = False
     cf1setpoint = ylineNext(cf1nextInteresect[2], radius, currentStep, divisions)
     #FOR TESTING PURPOSES:
     for i in range(30):
-        #print("internal/goal" + str(cf1pos) + "/[0,0,0,0]") 
+        #print("internal/goal" + str(cf1pos) + "/[0,0,0,0]")
+        print ("Sleeping T1 (drone)") 
         rate.sleep()
     #take off
     for i in range(40):
