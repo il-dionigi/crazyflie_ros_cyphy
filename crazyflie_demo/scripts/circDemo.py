@@ -141,7 +141,7 @@ def cf2task(cf):
         print("**c2 error " + str(error))
         stay = False
         #get nextIntersect, but skew it so if it is too close it will keep on moving
-        cf2nextIntersect[1] = -1*radius if divsions/4 < currentStep+divisions/20 < 3*divsions/4 else radius
+        cf2nextIntersect[1] = -1*radius if divisions/4 < currentStep+divisions/20 < 3*divisions/4 else radius
         if cf2stop and cf2nextIntersect[1] == cf1nextInteresect[1]:
             d = dist(cf2pos, cf1nextInteresect)
             if (d < 0.15):
