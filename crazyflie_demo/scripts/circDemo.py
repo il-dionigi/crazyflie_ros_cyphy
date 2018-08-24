@@ -20,6 +20,8 @@ cf2stop = False
 cf1nextInteresect = []
 cf1pos = [0,0,0,0]
 cf2pos = [0,0,0,0]
+cf1setpoint = [0,0,0,0]
+maxERR = 1000
 
 def callback_cf1pos(data):
     global cf1pos
@@ -109,8 +111,21 @@ def getError(actual, theoretical):
         Err[i] = int(Err[i]*1000)/1000.0
     return (Err)
 
+def getErrCircle(actual, theoretical):
+    guessPos = [0,0,0,0]
+    err = getError(actual, theoretical)
+    r = dist(err, [0,0,0,0])*2.0/3
+    for i in range(len(guessPos)):
+        guessPos[i] = (theoretical[i] + actual[i])/2
+    return [guessPos, r]
+
+def distErr(errCircleA, errCircleB):
+    d = dist(errCircleA[0], errCircleB[0])
+    d = d - errCircleA[1] - errCircleB[1]
+    return max(0, d)
+
 def cf2task(cf):
-    global cf2stop, cf1nextInteresect, cf2pos, cf1pos
+    global cf2stop, cf1nextInteresect, cf2pos, cf1pos, maxERR, cf1setpoint
     rate = rospy.Rate(5)
     #TEST POS
     cf2pos = [0,0,0,0]
@@ -122,36 +137,40 @@ def cf2task(cf):
     #cf.goToSetpoint([0, 0, 0.4, 0])
     radius = 0.6
     currentStep = 0
-    divisions = 120
+    divisions =  30
     stay = False
+    ErrCirc2 = getErrCircle(cf2pos, cf2setpoint)
     #FOR TESTING PURPOSES:
     #CIRCLE STARTS AT x =+, THEN GOES TO y =+
+    for i in range(3000):
+        #print("internal/goal" + str(cf1pos) + "/[0,0,0,0]")
+        print ("Sleeping T2 (drone)") 
+        rate.sleep()
     for i in range(20):
         cf2setpoint = circNext(cf2setpoint[2], radius, currentStep, divisions)
         cf.goToSetpoint(cf2setpoint)
         rate.sleep()
     while(True):
+        ErrCirc2 = getErrCircle(cf2pos, cf2setpoint)
         if cf2nextIntersect[1] > 0:
             print("circle going to y++")
         else:
             print("circle going to y--")
         error = dist(getError(cf2pos, cf2setpoint), [0,0,0,0])
-        print("**c2 error " + str(error))
+        print("**c2 error " + str(error) + " r= " + str(ErrCirc2[1]))
         stay = False
         #get nextIntersect, but skew it so if it is too close it will keep on moving
         cf2nextIntersect[1] = -1*radius if divisions/4 < currentStep+divisions/20 < 3*divisions/4 else radius
         if cf2stop and cf2nextIntersect[1] == cf1nextInteresect[1]:
-            d = dist(cf2pos, cf1nextInteresect)
-            if (d < 0.15):
+            d = distErr(ErrCirc2, [cf1nextInteresect, 0])
+            if (d < 0.1):
                 stay = True 
         d = dist(cf2pos, cf1pos)
         print("distance between drones: " + str(d))
-        if (d > 0.15):
-            stay = False
-        elif d < 0.05:
+        if d < 0.05:
             print("CRASH PREVENTION")
             cf2setpoint[2] = 0
-        if error > 0.12:
+        if error > maxERR:
             print("error is bad, circle will stay")
             stay = True
         if (stay):
@@ -165,32 +184,48 @@ def cf2task(cf):
     return
 
 def cf1task(cf):
-    global cf2stop, cf1nextInteresect, cf1pos
+    global cf2stop, cf1nextInteresect, cf1pos, maxERR, cf1setpoint
     rate = rospy.Rate(5)
+
     cf1pos = [0,0,0,0]
     #1=>going toward y=0.6, -1=>going toward y=-0.6
     direction = 1
     radius = 0.6
-    divisions = 75
+    divisions = 80
     currentStep = 0
     cf1nextInteresect = [0,0.6,0.4,0]
     stay = False
     cf1setpoint = ylineNext(cf1nextInteresect[2], radius, currentStep, divisions)
+    ErrCirc1  = getErrCircle(cf1setpoint, cf1pos)
     #FOR TESTING PURPOSES:
-    for i in range(30):
+    '''for i in range(3000):
         #print("internal/goal" + str(cf1pos) + "/[0,0,0,0]")
         print ("Sleeping T1 (drone)") 
-        rate.sleep()
+        rate.sleep()'''
     #take off
-    for i in range(40):
+    for i in range(20):
         #print("internal/goal" + str(cf1pos) + "/[0,0,0.4,0]") 
-        cf.goToSetpoint([0, 0, 0.4, 0])
+        print(cf1pos)
+        rate.sleep()
+    for i in range(4000):
+        #print("internal/goal" + str(cf1pos) + "/[0,0,0.4,0]") 
+        print(cf1pos)
+        currentStep = (currentStep + 1) % divisions
+        cf.goToSetpoint(cf1setpoint)
+        if (i % (divisions/4) == 0):
+            print("Dropping")
+            for k in range(30):
+                cf.goToSetpoint(cf1setpoint)
+                rate.sleep()
+            rate.sleep()
+
         rate.sleep()
     while(True):
+        ErrCirc1  = getErrCircle(cf1setpoint, cf1pos)
         error = dist(getError(cf1pos, cf1setpoint), [0,0,0,0])
-        print("*c1 error " + str(error))
+        print("*c1 error " + str(error) + " r= " + str(ErrCirc1[1]))
         stay = False
-        if (error > 0.13):
+        if (error > maxERR):
             print("Error bad. line will stay")
             stay = True
         #print("internal/goal" + str(cf1pos) + "/" + str(cf1setpoint)) 
@@ -205,17 +240,122 @@ def cf1task(cf):
         else:
             print("Line going to y---")
         #find out internal position, set cf1pos
-        if ( dist(cf1pos, cf1nextInteresect) < 0.1):
+        if ( distErr(ErrCirc1, [cf1nextInteresect, 0]) < 0.1):
             cf2stop = True
             print("cf2stop warn")
         elif cf2stop:
             cf1oldIntersect = cf1nextInteresect
             cf1oldIntersect[1] *= -1
-            if dist(cf1pos, cf1oldIntersect) > 0.1:
+            if distErr(ErrCirc1, [cf1nextInteresect, 0]) > 0.1:
                 cf2stop = False
         rate.sleep()
     return
 
+def cf1taskFake(cf):
+    global cf2stop, cf1nextInteresect, cf1pos, maxERR, cf1setpoint
+    rate = rospy.Rate(5)
+
+    cf1pos = [0,0,0,0]
+    #1=>going toward y=0.6, -1=>going toward y=-0.6
+    direction = 1
+    radius = 0.6
+    divisions = 80
+    currentStep = 0
+    cf1nextInteresect = [0,0.6,0.4,0]
+    stay = False
+    cf1setpoint = ylineNext(cf1nextInteresect[2], radius, currentStep, divisions)
+    ErrCirc1  = getErrCircle(cf1setpoint, cf1setpoint)
+    #FOR TESTING PURPOSES:
+    for i in range(30):
+        #print("internal/goal" + str(cf1pos) + "/[0,0,0,0]")
+        print ("Sleeping T1 (drone)") 
+        rate.sleep()
+    #take off
+    while(True):
+        ErrCirc1  = getErrCircle(cf1setpoint, cf1setpoint)
+        error = dist(getError(cf1setpoint, cf1setpoint), [0,0,0,0])
+        print("*c1 error " + str(error) + " r= " + str(ErrCirc1[1]))
+        stay = False
+        if (error > maxERR):
+            print("Error bad. line will stay")
+            stay = True
+        #print("internal/goal" + str(cf1pos) + "/" + str(cf1setpoint)) 
+        cf1setpoint = ylineNext(cf1nextInteresect[2], radius, currentStep, divisions)
+        direction = getDirect(currentStep, divisions)
+        if not stay:
+            currentStep = (currentStep + 1) % divisions
+        #cf.goToSetpoint(cf1setpoint)
+        cf1nextInteresect[1] = direction*radius
+        if (direction == 1):
+            print("Line going to y+++")
+        else:
+            print("Line going to y---")
+        #find out internal position, set cf1pos
+        if ( distErr(ErrCirc1, [cf1nextInteresect, 0]) < 0.1):
+            cf2stop = True
+            print("cf2stop warn")
+        elif cf2stop:
+            cf1oldIntersect = cf1nextInteresect
+            cf1oldIntersect[1] *= -1
+            if distErr(ErrCirc1, [cf1nextInteresect, 0]) > 0.1:
+                cf2stop = False
+                print("cf2 can go ")
+        rate.sleep()
+    return
+
+
+def cf2taskFake(cf):
+    global cf2stop, cf1nextInteresect, cf2pos, cf1pos, maxERR, cf1setpoint
+    rate = rospy.Rate(5)
+    #TEST POS
+    cf2pos = [0,0,0,0]
+    cf2setpoint = []
+    #start setpoint, go to 0,6, 0, 0.6
+    cf2setpoint = [0.6, 0, 0.4, 0]
+    cf2nextIntersect = [0, 0.6, 0.4, 0]
+    #Take off
+    #cf.goToSetpoint([0, 0, 0.4, 0])
+    radius = 0.6
+    currentStep = 0
+    divisions =  30
+    stay = False
+    ErrCirc2 = getErrCircle(cf2setpoint, cf2setpoint)
+    #FOR TESTING PURPOSES:
+    #CIRCLE STARTS AT x =+, THEN GOES TO y =+
+    for i in range(20):
+        print("Sleeping t2")
+        rate.sleep()
+    while(True):
+        ErrCirc2 = getErrCircle(cf2setpoint, cf2setpoint)
+        if cf2nextIntersect[1] > 0:
+            print("circle going to y++")
+        else:
+            print("circle going to y--")
+        error = dist(getError(cf2setpoint, cf2setpoint), [0,0,0,0])
+        stay = False
+        #get nextIntersect, but skew it so if it is too close it will keep on moving
+        cf2nextIntersect[1] = -1*radius if divisions/4 < currentStep+divisions/20 < 3*divisions/4 else radius
+        if cf2stop and cf2nextIntersect[1] == cf1nextInteresect[1]:
+            d = distErr(ErrCirc2, [cf1nextInteresect, 0])
+            if (d < 0.1):
+                stay = True 
+        d = dist(cf2setpoint, cf1setpoint)
+        print("distance between drones: " + str(d))
+        if d < 0.05:
+            print("CRASH PREVENTION")
+            cf2setpoint[2] = 0
+        if error > maxERR:
+            print("error is bad, circle will stay")
+            stay = True
+        if (stay):
+            cf.goToSetpoint(cf2setpoint) #stay at position
+        else:
+            cf2setpoint = circNext(cf2setpoint[2], radius, currentStep, divisions)
+            currentStep = (currentStep + 1 ) % divisions
+            cf.goToSetpoint(cf2setpoint)
+        #CIRCLE
+        rate.sleep()
+    return
 
 if __name__ == '__main__':
     rospy.init_node('position', anonymous=True)
@@ -225,8 +365,12 @@ if __name__ == '__main__':
     rospy.Subscriber("cf1/log1", GenericLogData, callback_cf1pos)
     rospy.Subscriber("cf2/log2", GenericLogData, callback_cf2pos)
     print("STARTING THREADS")
-    t1 = Thread(target=cf1task, args=(cf1,))
-    t2 = Thread(target=cf2task, args=(cf2,))
+    #t1 = Thread(target=cf1task, args=(cf1,))
+    #t2 = Thread(target=cf2task, args=(cf2,))
+
+    t1 = Thread(target=cf1taskFake, args=(cf1,))
+    t2 = Thread(target=cf2taskFake, args=(cf2,))
+
     t1.start()
     t2.start()
     t1.join()
