@@ -23,9 +23,9 @@ def callback_pos_beacons(data):
 
 def callback_pos_camera(data):
     global cameraPos
-    cameraPos[0] = data.values[0]
-    cameraPos[1] = data.values[1]
-    cameraPos[2] = data.values[2]
+    cameraPos[0] = data.point.x
+    cameraPos[1] = data.point.x
+    cameraPos[2] = data.point.x
 
 def publisherThread():
     global currPos
@@ -61,10 +61,10 @@ def print_beacon_camera_diff():
 
 
 if __name__ == '__main__':
-    rospy.init_node('position', anonymous=True)
+    rospy.init_node('beaconTest', anonymous=True)
     worldFrame = rospy.get_param("~worldFrame", "/world")
     rate = rospy.Rate(10) #  hz
-    rospy.Subscriber("log1", GenericLogData, callback_pos_camera)
+    rospy.Subscriber("external_position", PointStamped, callback_pos_camera)
     rospy.Subscriber("log2", GenericLogData, callback_pos_beacons)
     
     #for position mode
@@ -102,7 +102,8 @@ if __name__ == '__main__':
     timeAlloted = 2
     # take off
     positionMove([0,0,0,0],1)
-    positionMove([0,0,0.4,0],2)
+    positionMove([0,0,0.4,0],3)
+    rospy.loginfo("SHOULD BE IN AIR?!...")
     setpoint = [0,0,0.5,0]
     positionMove(setpoint, timeAlloted)
     setpoint = [0,0.5,0.5,0]
@@ -113,5 +114,6 @@ if __name__ == '__main__':
     positionMove(setpoint, timeAlloted)
     #land
     positionMove([0,0,0,0],0.1)
+    STOP = True
     stop_pub.publish(stop_msg)
-    #todo: Ros + camera + beacon, compare camera/beacon poses
+

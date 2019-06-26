@@ -1,17 +1,17 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="uri" default="radio://0/80/2M/E7E7E7E7E7" /> <!--Adjust this parameter-->
-  <arg name="frame" default="crazyflie1" /> <!--For OptiTrack users: frame name should match the Rigid-body name on Motive-->
-  <arg name="ip" default="172.16.1.1" /> <!--Adjust this parameter-->
+  <arg name="uri" default="radio://0/20/2M/E7E7E7E7E7" /> <!--Adjust this parameter-->
+  <arg name="frame" default="cf1" /> <!--For OptiTrack users: frame name should match the Rigid-body name on Motive-->
+  <arg name="ip" default="192.168.1.198" /> <!--Adjust this parameter-->
   <arg name="port" default="3883" />
 
   <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch">
   </include>
 
-  <group ns="crazyflie1">
+  <group ns="cf1">
     <node pkg="crazyflie_driver" type="crazyflie_add" name="crazyflie_add" output="screen">
       <param name="uri" value="$(arg uri)" />
-      <param name="tf_prefix" value="crazyflie1" />
+      <param name="tf_prefix" value="cf1" />
       <param name="enable_logging" value="False" /> <!--Logging is disabled to reduce unnecessary bandwith consumption-->
       <param name="enable_logging_imu" value="False" />
       <param name="enable_logging_temperature" value="False" />
@@ -19,6 +19,7 @@
       <param name="enable_logging_pressure" value="False" />
       <param name="enable_logging_battery" value="False" />
       <param name="enable_logging_packets" value="False" />
+      <param name="enable_logging_pose" value="True" />
       <rosparam>
         genericLogTopics: ["log1"]
         genericLogTopicFrequencies: [100]
@@ -27,7 +28,7 @@
     </node>
 
     <node name="pose" pkg="crazyflie_demo" type="publish_external_position_vrpn.py" output="screen"> 
-      <param name="topic" value="/crazyflie1/vrpn_client_node/crazyflie1/pose" />
+      <param name="topic" value="/cf1/vrpn_client_node/cf1/pose" />
     </node>
 
     <!--Run vrpn client-->

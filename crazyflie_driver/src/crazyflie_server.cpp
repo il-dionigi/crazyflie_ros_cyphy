@@ -382,7 +382,8 @@ void cmdSendSetpoint(
   void positionMeasurementChanged(
     const geometry_msgs::PointStamped::ConstPtr& msg)
   {
-    m_cf.sendExternalPositionUpdate(msg->point.x, msg->point.y, msg->point.z);
+//~cyphy~, dont want drone to know camera estimate
+    //m_cf.sendExternalPositionUpdate(msg->point.x, msg->point.y, msg->point.z);
     m_sentExternalPosition = true;
   }
 

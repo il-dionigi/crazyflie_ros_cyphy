@@ -33,7 +33,7 @@ def onNewTransform(pose):
 
 if __name__ == '__main__':
     rospy.init_node('publish_external_position_vrpn', anonymous=True)
-    topic = rospy.get_param("~topic", "/crazyflie1/vrpn_client_node/crazyflie1/pose")
+    topic = rospy.get_param("~topic", "/cf1/vrpn_client_node/cf1/pose")
 
     rospy.wait_for_service('update_params')
     rospy.loginfo("found update_params service")
