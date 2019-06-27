@@ -49,14 +49,18 @@ def publisherThread():
 def positionMove(pos=[0,0,0,0], t=1):
     global currPos
     currPos = pos
-    rospy.sleep(t)
+    for i in range(10):
+        rospy.sleep(t/10)
+        print_beacon_camera_diff()
 
 def print_beacon_camera_diff():
     global cameraPos, beaconPos
     dx = cameraPos[0] - beaconPos[0]
     dy = cameraPos[1] - beaconPos[1]
     dz = cameraPos[2] - beaconPos[2]
-    rospy.loginfo("dx:"+ str(dx) + " dy:" + str(dy) + " dz:" + str(dz))
+    rospy.loginfo("camera... x:"+ str(cameraPos[0]) + " y:" + str(cameraPos[1]) + " z:" + str(cameraPos[2]))
+    rospy.loginfo("beacon... x:"+ str(beaconPos[0]) + " y:" + str(beaconPos[1]) + " z:" + str(beaconPos[2]))
+    rospy.loginfo("dx:"+ str(dx) + " dy:" + str(dy) + " dz:" + str(dz) + "\n")
 
 
 if __name__ == '__main__':
@@ -97,10 +101,11 @@ if __name__ == '__main__':
     msgPublisher = Thread(target=publisherThread)
     msgPublisher.start()
 
-    rospy.loginfo("START TAKEOFF...")
+
     timeAlloted = 2
     # take off
     positionMove([0,0,0,0],1)
+
     positionMove([0,0,0.4,0],3)
     rospy.loginfo("SHOULD BE IN AIR?!...")
     setpoint = [0,0,0.5,0]
