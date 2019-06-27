@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import rospy
 import tf
 from crazyflie_driver.msg import Position
@@ -106,14 +105,22 @@ if __name__ == '__main__':
     rospy.loginfo("SHOULD BE IN AIR?!...")
     setpoint = [0,0,0.5,0]
     positionMove(setpoint, timeAlloted)
+    rospy.loginfo("MOVING +y")
+    print_beacon_camera_diff()
     setpoint = [0,0.5,0.5,0]
     positionMove(setpoint, timeAlloted)
+    rospy.loginfo("MOVING -y")
+    print_beacon_camera_diff()
     setpoint = [0,0,0.5,0]
     positionMove(setpoint, timeAlloted)
+    rospy.loginfo("MOVING +x")
+    print_beacon_camera_diff()
     setpoint = [0.5,0,0.5,0]
     positionMove(setpoint, timeAlloted)
     #land
     positionMove([0,0,0,0],0.1)
+    print_beacon_camera_diff()
+    rospy.loginfo("Done.")
     STOP = True
     stop_pub.publish(stop_msg)
 
