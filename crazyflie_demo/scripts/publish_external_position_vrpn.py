@@ -32,9 +32,9 @@ def onNewTransform(pose):
 
 
 if __name__ == '__main__':
-    rospy.init_node('publish_external_position_vrpn', anonymous=True)
+    rospy.init_node('pose', anonymous=True)
     topic = rospy.get_param("~topic", "/cf1/vrpn_client_node/cf1/pose")
-
+    rospy.loginfo("Subscribing to " + topic)
     rospy.wait_for_service('update_params')
     rospy.loginfo("found update_params service")
     update_params = rospy.ServiceProxy('update_params', UpdateParams)
@@ -46,6 +46,5 @@ if __name__ == '__main__':
     msg.header.stamp = rospy.Time.now()
 
     pub = rospy.Publisher("external_position", PointStamped, queue_size=1)
-    rospy.Subscriber(topic, PoseStamped, onNewTransform)
-
+    sub = rospy.Subscriber(topic, PoseStamped, onNewTransform)
     rospy.spin()

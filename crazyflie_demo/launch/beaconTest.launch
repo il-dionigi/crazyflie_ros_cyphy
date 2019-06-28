@@ -12,7 +12,7 @@
     <node pkg="crazyflie_driver" type="crazyflie_add" name="crazyflie_add" output="screen">
       <param name="uri" value="$(arg uri)" />
       <param name="tf_prefix" value="cf1" />
-      <param name="enable_logging" value="True" /> <!--Logging is disabled to reduce unnecessary bandwith consumption-->
+      <param name="enable_logging" value="True" />
       <param name="enable_logging_imu" value="False" />
       <param name="enable_logging_temperature" value="False" />
       <param name="enable_logging_magnetic_field" value="False" />
@@ -28,13 +28,14 @@
       </rosparam>
     </node>
 
-    <node name="pose" pkg="crazyflie_demo" type="publish_external_position_vrpn.py" output="screen"> 
 	<!-- This node is for getting camera-positions -->
-
+    <node name="pose" pkg="crazyflie_demo" type="publish_external_position_vrpn.py" output="screen"> 
       <param name="topic" value="/cf1/vrpn_client_node/cf1/pose" />
-    </node>
-    <node name="beacon_test" pkg="crazyflie_demo" type="beaconTest.py" output="screen"> 
+    </node> 
+
 	<!-- This node is for master code that uses camera positions and beacon positions  -->
+    <node name="beacon_test" pkg="crazyflie_demo" type="beaconTest.py" output="screen"> 
+
     </node>
 
     <!--Run vrpn client-->
