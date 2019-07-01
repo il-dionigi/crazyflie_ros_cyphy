@@ -17,6 +17,7 @@ from geometry_msgs.msg import PointStamped, TransformStamped, PoseStamped #PoseS
 beaconPos = [0,0,0]
 beaconPos2 = [0,0,0]
 cameraPos = [0,0,0]
+beaconDists = [0,0,0,0, 0,0,0,0]
 #x, y, z, yaw
 currPos = [0,0,0,0] # current setpoint
 STOP = False
@@ -28,6 +29,7 @@ def exit_handler():
     stop_msg = Empty()
     STOP = True
     stop_pub.publish(stop_msg)
+
 
 def beaconToCameraCoords(pos_b):
     # hopefully this is not needed anymore
@@ -42,6 +44,15 @@ def beaconToCameraCoords(pos_b):
     pos_c[1] = pos_c[1]
     return pos_c
     
+def callback_beacon_ranging1(data):
+    global beaconDists
+    for i in range(4):
+        beaconDists[i] = data.values[i]
+
+def callback_beacon_ranging2(data):
+    global beaconDists
+    for i in range(4,8):
+        beaconDists[i] = data.values[i-4]
 
 def callback_pos_beacons(data):
     global beaconPos
@@ -50,7 +61,7 @@ def callback_pos_beacons(data):
     beaconPos[2] = data.values[2]
 
 def callback_pos_beacons2(data):
-    global beaconPos
+    global beaconPos2
     beaconPos2[0] = data.values[0]
     beaconPos2[1] = data.values[1]
     beaconPos2[2] = data.values[2]
@@ -90,14 +101,19 @@ def positionMove(pos=[0,0,0,0], t=1):
         print_beacon_camera_diff()
 
 def print_beacon_camera_diff():
-    global cameraPos, beaconPos, beaconPos2
-    dx = cameraPos[0] - beaconPos[0]
-    dy = cameraPos[1] - beaconPos[1]
-    dz = cameraPos[2] - beaconPos[2]
+    global cameraPos, beaconPos, beaconPos2, beaconDists
+    dx = cameraPos[0] - beaconPos2[0]
+    dy = cameraPos[1] - beaconPos2[1]
+    dz = cameraPos[2] - beaconPos2[2]
     rospy.loginfo("camera... x:"+ str(cameraPos[0]) + " y:" + str(cameraPos[1]) + " z:" + str(cameraPos[2]))
-    rospy.loginfo("beaconSE... x:"+ str(beaconPos[0]) + " y:" + str(beaconPos[1]) + " z:" + str(beaconPos[2]))
+    #rospy.loginfo("beaconSE... x:"+ str(beaconPos[0]) + " y:" + str(beaconPos[1]) + " z:" + str(beaconPos[2]))
     rospy.loginfo("beaconKF... x:"+ str(beaconPos2[0]) + " y:" + str(beaconPos2[1]) + " z:" + str(beaconPos2[2]))
-    row = [beaconPos[0], beaconPos[1], beaconPos[2], cameraPos[0], cameraPos[1], cameraPos[2]]
+    rospy.loginfo("diff... dx:"+ str(dx) + " dy:" + str(dy) + " dz:" + str(dz))
+    rospy.loginfo("beaconDists...")
+    rospy.loginfo("0: " + str(beaconDists[0]) + " 1: " + str(beaconDists[1]))
+    rospy.loginfo("2: " + str(beaconDists[2]) + " 3: " + str(beaconDists[3]))
+    rospy.loginfo("4: " + str(beaconDists[4]) + " 5: " + str(beaconDists[5]))
+    rospy.loginfo("6: " + str(beaconDists[6]) + " 7: " + str(beaconDists[7]))
 
 if __name__ == '__main__':
     atexit.register(exit_handler)
@@ -105,9 +121,10 @@ if __name__ == '__main__':
     worldFrame = rospy.get_param("~worldFrame", "/world")
     rate = rospy.Rate(10) #  hz
     rospy.Subscriber("external_position", PointStamped, callback_pos_camera)
-    rospy.Subscriber("log1", GenericLogData, callback_pos_beacons)
-    rospy.Subscriber("log2", GenericLogData, callback_pos_beacons2) # another version of the position, but I think this one is worse
-
+    rospy.Subscriber("SE", GenericLogData, callback_pos_beacons)
+    rospy.Subscriber("KF", GenericLogData, callback_pos_beacons2)
+    rospy.Subscriber("Ranging1", GenericLogData, callback_beacon_ranging1)
+    rospy.Subscriber("Ranging2", GenericLogData, callback_beacon_ranging2)
     #for position mode
     msgPos = Position()
     msgPos.header.seq = 0
@@ -140,11 +157,11 @@ if __name__ == '__main__':
     timeAlloted = 10
     # take off
     positionMove([0,0,0,0],8)
-    while (True):
+    for j in range(1000):
         print_beacon_camera_diff()
-        rospy.sleep(0.8)
+        rospy.sleep(1)
 
-    positionMove([0,0,0.4,0],3)
+    positionMove([0,0,0.4,0],10)
     rospy.loginfo("SHOULD BE IN AIR?!...")
     setpoint = [0,0,0.5,0]
     positionMove(setpoint, timeAlloted)

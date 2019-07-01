@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="uri" default="radio://0/20/2M/E7E7E7E7E7" /> <!--Adjust this parameter-->
+  <arg name="uri" default="radio://0/100/2M/E7E7E7E7E7" /> <!--Adjust this parameter-->
   <arg name="frame" default="cf1" /> <!--For OptiTrack users: frame name should match the Rigid-body name on Motive-->
   <arg name="ip" default="192.168.1.198" /> <!--Adjust this parameter-->
   <arg name="port" default="3883" />
@@ -21,10 +21,12 @@
       <param name="enable_logging_packets" value="False" />
       <param name="enable_logging_pose" value="True" />
       <rosparam>
-        genericLogTopics: ["log1", "log2"]
-        genericLogTopicFrequencies: [100, 100]
-        genericLogTopic_log1_Variables: ["stateEstimate.x", "stateEstimate.y", "stateEstimate.z"]
-        genericLogTopic_log2_Variables: ["kalman.stateX", "kalman.stateY", "kalman.stateZ"]
+        genericLogTopics: ["SE", "KF", "Ranging1", "Ranging2"]
+        genericLogTopicFrequencies: [100, 100, 100, 100]
+        genericLogTopic_SE_Variables: ["stateEstimate.x", "stateEstimate.y", "stateEstimate.z"]
+        genericLogTopic_KF_Variables: ["kalman.stateX", "kalman.stateY", "kalman.stateZ"]
+        genericLogTopic_Ranging1_Variables: ["ranging.distance0", "ranging.distance1", "ranging.distance2", "ranging.distance3"]
+        genericLogTopic_Ranging2_Variables: ["ranging.distance4", "ranging.distance5", "ranging.distance6", "ranging.distance7"]
       </rosparam>
     </node>
 
