@@ -18,21 +18,27 @@ beaconPos = [0,0,0]
 beaconPos2 = [0,0,0]
 cameraPos = [0,0,0]
 beaconDists = [0,0,0,0, 0,0,0,0]
+beaconMins = [0,0,0,0, 0,0,0,0]
+beaconMaxs = [0,0,0,0, 0,0,0,0]
+beaconMeans = [0,0,0,0, 0,0,0,0]
+count1 = 0
+count2 = 0
+samples = 20
 #x, y, z, yaw
 currPos = [0,0,0,0] # current setpoint
 STOP = False
 
 def exit_handler():
     rospy.loginfo("///Exiting. sending stop command///")
-
+    positionMove([0,0,0,0],0.1)
     stop_pub = rospy.Publisher("cmd_stop", Empty, queue_size=1)
     stop_msg = Empty()
     STOP = True
     stop_pub.publish(stop_msg)
 
 
+#They have the same coords now, so this isn't needed
 def beaconToCameraCoords(pos_b):
-    # hopefully this is not needed anymore
     shift = [0.0, 0.0, 0.0] # position according to beacons when camera pos is 0,0,0
     pos_c = [0,0,0]
     # shift
@@ -45,12 +51,28 @@ def beaconToCameraCoords(pos_b):
     return pos_c
     
 def callback_beacon_ranging1(data):
-    global beaconDists
+    global beaconDists, count1, beaconMins, beaconMaxs, beaconMeans
+    
     for i in range(4):
         beaconDists[i] = data.values[i]
+    """count1 = count1 + 1
+    if (count1 == samples):
+        count1 = 0
+        for i in range(4):
+            rospy.loginfo("{} Mean: {} Max: {} Min: {}".format(i, beaconMeans[i]/samples, beaconMaxs[i], beaconMins[i]))
+            beaconMaxs[i] = data.values[i]
+            beaconMins[i] = data.values[i]
+            beaconMeans[i] = data.values[i]  
+    else:
+        for i in range(4):
+            if beaconDists[i] > beaconMaxs[i]:
+                beaconMaxs[i] = beaconDists[i]
+            if beaconDists[i] < beaconMins[i]:
+                beaconMins[i] = beaconDists[i]
+            beaconMeans[i] += beaconDists[i]"""
 
 def callback_beacon_ranging2(data):
-    global beaconDists
+    global beaconDists, count2
     for i in range(4,8):
         beaconDists[i] = data.values[i-4]
 
@@ -98,7 +120,7 @@ def positionMove(pos=[0,0,0,0], t=1):
     currPos = pos
     for i in range(10):
         rospy.sleep(t/10.0)
-        print_beacon_camera_diff()
+        #print_beacon_camera_diff()
 
 def print_beacon_camera_diff():
     global cameraPos, beaconPos, beaconPos2, beaconDists
@@ -109,11 +131,11 @@ def print_beacon_camera_diff():
     #rospy.loginfo("beaconSE... x:"+ str(beaconPos[0]) + " y:" + str(beaconPos[1]) + " z:" + str(beaconPos[2]))
     rospy.loginfo("beaconKF... x:"+ str(beaconPos2[0]) + " y:" + str(beaconPos2[1]) + " z:" + str(beaconPos2[2]))
     rospy.loginfo("diff... dx:"+ str(dx) + " dy:" + str(dy) + " dz:" + str(dz))
-    rospy.loginfo("beaconDists...")
+    """rospy.loginfo("beaconDists...")
     rospy.loginfo("0: " + str(beaconDists[0]) + " 1: " + str(beaconDists[1]))
     rospy.loginfo("2: " + str(beaconDists[2]) + " 3: " + str(beaconDists[3]))
     rospy.loginfo("4: " + str(beaconDists[4]) + " 5: " + str(beaconDists[5]))
-    rospy.loginfo("6: " + str(beaconDists[6]) + " 7: " + str(beaconDists[7]))
+    rospy.loginfo("6: " + str(beaconDists[6]) + " 7: " + str(beaconDists[7]))"""
 
 if __name__ == '__main__':
     atexit.register(exit_handler)
@@ -153,39 +175,29 @@ if __name__ == '__main__':
     msgPublisher = Thread(target=publisherThread)
     msgPublisher.start()
 
+    timeAlloted = 4
+    print_beacon_camera_diff()
+    rospy.sleep(2)    
 
-    timeAlloted = 10
-    # take off
-    positionMove([0,0,0,0],8)
-    for j in range(1000):
-        print_beacon_camera_diff()
-        rospy.sleep(1)
-
-    positionMove([0,0,0.4,0],10)
+    positionMove([beaconPos2[0],beaconPos2[1],0.4,0],1) #takeoff
     rospy.loginfo("SHOULD BE IN AIR?!...")
     setpoint = [0,0,0.5,0]
-    positionMove(setpoint, timeAlloted)
-    rospy.loginfo("MOVING +y")
-    print_beacon_camera_diff()
-    setpoint = [0,0.5,0.5,0]
-    positionMove(setpoint, timeAlloted)
-    rospy.loginfo("MOVING -y")
-    print_beacon_camera_diff()
-    setpoint = [0,0,0.5,0]
-    positionMove(setpoint, timeAlloted)
-    rospy.loginfo("MOVING +x")
-    print_beacon_camera_diff()
-    setpoint = [0.5,0,0.5,0]
-    positionMove(setpoint, timeAlloted)
-    rospy.loginfo("MOVING -x")
-    print_beacon_camera_diff()
-    setpoint = [0,0,0.5,0]
-    positionMove(setpoint, timeAlloted)
+    positionMove(setpoint, timeAlloted) #zero x,y
+    square_setpoints = [ [0,0.5,0.5,0], [0.5,0.5,0.5,0],  [0.5,0,0.5,0], [0,0,0.5,0] ]
+    #triangle_setpoints = [ [0,0.5,0.5,0], [-0.3,0,0.5,0],  [0.3,0,0.5,0], [0,0.5,0.5,0] ]
+    for setpoint in square_setpoints:
+        positionMove(setpoint, timeAlloted)
+        rospy.loginfo("SETPOINT..." + str(setpoint))
+        print_beacon_camera_diff()
+        rospy.sleep(0.5)
+
     #land
-    positionMove([0,0,0.3,0.5],0.5)
-    positionMove([0,0,0.2,0.3],0.1)
+    positionMove([0,0,0.3,0],0.5)
+    positionMove([0,0,0.2,0],0.4)
+    positionMove([0,0,0,0],0.3)
     print_beacon_camera_diff()
     rospy.loginfo("Done.")
+    exit_handler()
 
     
 
