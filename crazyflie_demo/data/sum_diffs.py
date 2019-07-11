@@ -10,8 +10,8 @@ worst_error = 0
 with open("diff_nums.csv", 'rb') as csvfile:
     f = csv.reader(csvfile, delimiter=',')
     for row in f:
-        sum_xy += float(row[0]) + float(row[1])
-        sum_all += float(row[0]) + float(row[1]) + float(row[2])
+        sum_xy += abs(float(row[0])) + abs(float(row[1]))
+        sum_all += abs(float(row[0])) + abs(float(row[1])) + abs(float(row[2]))
         count_all += 3
         count_xy += 2
         worst_error = max(worst_error, abs(float(row[0])), abs(float(row[1])), abs(float(row[2])))

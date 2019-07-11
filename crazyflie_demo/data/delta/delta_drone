@@ -1,0 +1,9 @@
+drone channel 95:
+delta_drone:0.50155849359, +- 0.06
+delta_p:65.3352664106, +- 0.1
+in ms
+
+drone channel 100:
+delta_drone:0.50313654973 +- 0.04
+delta_p:65.327624856 +- 0.1
+

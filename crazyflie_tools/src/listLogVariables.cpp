@@ -7,7 +7,7 @@ int main(int argc, char **argv)
 {
 
   std::string uri;
-  std::string defaultUri("radio://0/30/2M/E7E7E7E7E2");
+  std::string defaultUri("radio://0/95/2M/E7E7E7E7E7");
 
   namespace po = boost::program_options;
 

@@ -1,0 +1,4 @@
+[INFO] [WallTime: 1562797588.634767] STATS: delta_b, delta_d, delta_p in ms, dx, dy in m
+[INFO] [WallTime: 1562797588.635319] dp mean:1812.93942434, stddev:0.0297530087, max-min:0.0948739389271
+[INFO] [WallTime: 1562797588.636254] dx mean:0.301894238431, stddev:0.239828506796, max-min:0.595151764195
+[INFO] [WallTime: 1562797588.636797] dy mean:0.558165153585, stddev:0.675859125996, max-min:1.94449064735

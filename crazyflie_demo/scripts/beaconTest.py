@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import rospy
 import tf
+import numpy as np
 
 
 import atexit
@@ -13,7 +14,8 @@ from threading import Thread
 from geometry_msgs.msg import PointStamped, TransformStamped, PoseStamped #PoseStamped added to support vrpn_client
 
 
-
+LOCODECK_TS_FREQ = 499.2*(10**6) * 128
+delta_bs = [0,0,0,0, 0,0,0,0]
 beaconPos = [0,0,0]
 beaconPos2 = [0,0,0]
 cameraPos = [0,0,0]
@@ -21,12 +23,18 @@ beaconDists = [0,0,0,0, 0,0,0,0]
 beaconMins = [0,0,0,0, 0,0,0,0]
 beaconMaxs = [0,0,0,0, 0,0,0,0]
 beaconMeans = [0,0,0,0, 0,0,0,0]
+ts = [0,0,0, 0,0,0,0]
 count1 = 0
 count2 = 0
 samples = 20
 #x, y, z, yaw
 currPos = [0,0,0,0] # current setpoint
 STOP = False
+delta_d_list = []
+delta_p_list = []
+delta_b_list = []
+bc_diffx = []
+bc_diffy = []
 
 def exit_handler():
     rospy.loginfo("///Exiting. sending stop command///")
@@ -95,6 +103,21 @@ def callback_pos_camera(data):
     cameraPos[1] = data.point.y
     cameraPos[2] = data.point.z
 
+def callback_twr_time(data):
+    global ts, delta_d_list, delta_p_list, delta_b_list
+    for i in range(len(data.values)):
+        ts[i] = data.values[i]
+
+    delta_p_list.append(1000*((ts[5])/LOCODECK_TS_FREQ + ts[6]*(2**32/LOCODECK_TS_FREQ)) )
+    delta_d_list.append(1000*(ts[4]-ts[3])/LOCODECK_TS_FREQ)
+
+
+def callback_twr_beacon(data):
+    global delta_bs
+    for i in range(len(data.values)):
+        delta_bs[i] = data.values[i]
+    delta_b_list.append(1000*delta_bs[0]/LOCODECK_TS_FREQ)
+
 def publisherThread():
     global currPos
     sequence = 0
@@ -115,12 +138,37 @@ def publisherThread():
         sequence += 1
         rate.sleep() 
 
-def positionMove(pos=[0,0,0,0], t=1):
+def positionMove(pos=[0,0,0,0], t=1, N=20):
     global currPos
     currPos = pos
-    for i in range(10):
-        rospy.sleep(t/10.0)
+    for i in range(N):
+        rospy.sleep(1.0*t/N)
+        if (N > 1):
+            get_diff()
         #print_beacon_camera_diff()
+
+def get_diff():
+    global cameraPos, beaconPos2, bc_diffx, bc_diffy
+    dx = cameraPos[0] - beaconPos2[0]
+    dy = cameraPos[1] - beaconPos2[1]
+    bc_diffx.append(np.abs(dx))
+    bc_diffy.append(np.abs(dy))
+
+def get_stats():
+    global delta_b_list, delta_d_list, delta_p_list, bc_diffx, bc_diffy
+    rospy.loginfo("STATS: delta_b, delta_d, delta_p in ms, dx, dy in m")
+    #rospy.loginfo("db mean:{}, stddev:{}, max-min:{}".format(np.mean(delta_b_list), np.std(delta_b_list), np.max(delta_b_list)-np.min(delta_b_list)))
+    #rospy.loginfo("dd mean:{}, stddev:{}, max-min:{}".format(np.mean(delta_d_list), np.std(delta_d_list), np.max(delta_d_list)-np.min(delta_d_list)))
+    rospy.loginfo("dp mean:{}, stddev:{}, max-min:{}".format(np.mean(delta_p_list), np.std(delta_p_list), np.max(delta_p_list)-np.min(delta_p_list)))
+    #rospy.loginfo(str(delta_b_list))
+    rospy.loginfo("dx mean:{}, stddev:{}, max-min:{}".format(np.mean(bc_diffx), np.std(bc_diffx), np.max(bc_diffx)-np.min(bc_diffx)))
+    rospy.loginfo("dy mean:{}, stddev:{}, max-min:{}".format(np.mean(bc_diffy), np.std(bc_diffy), np.max(bc_diffy)-np.min(bc_diffy)))
+    f = open("delta_p_"+str(np.mean(delta_p_list))+".txt", "a")
+    f.write("\nNEW RUN: dp=" + str(np.mean(delta_p_list) ) + "\n")
+    for num in bc_diffx:
+        f.write("\ndx:"+str(num))
+    for num in bc_diffy:
+        f.write("\ndy:"+str(num))
 
 def print_beacon_camera_diff():
     global cameraPos, beaconPos, beaconPos2, beaconDists
@@ -137,16 +185,35 @@ def print_beacon_camera_diff():
     rospy.loginfo("4: " + str(beaconDists[4]) + " 5: " + str(beaconDists[5]))
     rospy.loginfo("6: " + str(beaconDists[6]) + " 7: " + str(beaconDists[7]))"""
 
+def print_ts():
+    global ts
+    rospy.loginfo("times: ")
+    #for i in range(0,5):
+    #    rospy.loginfo("t{}: {}".format(i+1, ts[i]))
+    rospy.loginfo("calculated deltas (s):\n delta_beacon:{}, delta_drone:{}, delta_p:{}".format((ts[2]-ts[1])/LOCODECK_TS_FREQ, (ts[4]-ts[3])/LOCODECK_TS_FREQ, ts[5]/LOCODECK_TS_FREQ))
+
+def print_deltas():
+    global delta_bs, ts
+    rospy.loginfo("delta_bs: ")
+    for i in range(6):
+        rospy.loginfo("delta_b{}: {}".format(i, delta_bs[i]/LOCODECK_TS_FREQ))
+    rospy.loginfo("delta_drone:{}".format((ts[4]-ts[3])/LOCODECK_TS_FREQ))
+    #rospy.loginfo("delta_pl32:{}".format((ts[5])/LOCODECK_TS_FREQ))
+    #rospy.loginfo("delta_ph8:{}".format((ts[6])/LOCODECK_TS_FREQ))
+    rospy.loginfo("delta_p:{}".format((ts[5])/LOCODECK_TS_FREQ + ts[6]*(2**32/LOCODECK_TS_FREQ) ))
+
 if __name__ == '__main__':
     atexit.register(exit_handler)
     rospy.init_node('beaconTest', anonymous=True)
     worldFrame = rospy.get_param("~worldFrame", "/world")
     rate = rospy.Rate(10) #  hz
     rospy.Subscriber("external_position", PointStamped, callback_pos_camera)
-    rospy.Subscriber("SE", GenericLogData, callback_pos_beacons)
+    #rospy.Subscriber("SE", GenericLogData, callback_pos_beacons)
     rospy.Subscriber("KF", GenericLogData, callback_pos_beacons2)
-    rospy.Subscriber("Ranging1", GenericLogData, callback_beacon_ranging1)
-    rospy.Subscriber("Ranging2", GenericLogData, callback_beacon_ranging2)
+    #rospy.Subscriber("Ranging1", GenericLogData, callback_beacon_ranging1)
+    #rospy.Subscriber("Ranging2", GenericLogData, callback_beacon_ranging2)
+    rospy.Subscriber("TWRtime", GenericLogData, callback_twr_time)
+    rospy.Subscriber("TWRbeacons", GenericLogData, callback_twr_beacon)
     #for position mode
     msgPos = Position()
     msgPos.header.seq = 0
@@ -175,28 +242,43 @@ if __name__ == '__main__':
     msgPublisher = Thread(target=publisherThread)
     msgPublisher.start()
 
-    timeAlloted = 4
+    timeAlloted = 2
     print_beacon_camera_diff()
-    rospy.sleep(2)    
 
-    positionMove([beaconPos2[0],beaconPos2[1],0.4,0],1) #takeoff
+    rospy.sleep(2)
+    """
+    for i in range(100):
+        rospy.sleep(0.1)
+        print_deltas()
+        print_beacon_camera_diff()
+        #rospy.sleep(2)
+        #print_ts() 
+
+  
+
+    """
+    positionMove([beaconPos2[0],beaconPos2[1],0.4,0],.1, N=1) #takeoff
     rospy.loginfo("SHOULD BE IN AIR?!...")
     setpoint = [0,0,0.5,0]
-    positionMove(setpoint, timeAlloted) #zero x,y
-    square_setpoints = [ [0,0.5,0.5,0], [0.5,0.5,0.5,0],  [0.5,0,0.5,0], [0,0,0.5,0] ]
+    #positionMove(setpoint, timeAlloted+3, N=1) #zero x,y
+    #square_setpoints = [ [0,0.5,0.5,0], [0.5,0.5,0.5,0],  [0.5,0,0.5,0], [0,0,0.5,0] ]
     #triangle_setpoints = [ [0,0.5,0.5,0], [-0.3,0,0.5,0],  [0.3,0,0.5,0], [0,0.5,0.5,0] ]
-    for setpoint in square_setpoints:
-        positionMove(setpoint, timeAlloted)
+    traj_setpoints = [ [0, 0, 0.5, 0], [-1, 0, 0.5, 0], [0, -1, 0.5, 0], [-0.5, -1, 0.5, 0], [-0.5, 1, 0.5, 0], [0.5, -0.5, 0.5, 0], [1.5, -0.5, 0.5, 0], [0,0,0.5,0] ]
+    for setpoint in traj_setpoints:
+        positionMove(setpoint, timeAlloted, N=50)
         rospy.loginfo("SETPOINT..." + str(setpoint))
-        print_beacon_camera_diff()
-        rospy.sleep(0.5)
+        #print_beacon_camera_diff()
 
     #land
-    positionMove([0,0,0.3,0],0.5)
-    positionMove([0,0,0.2,0],0.4)
-    positionMove([0,0,0,0],0.3)
-    print_beacon_camera_diff()
+    positionMove([0,0,0.3,0],0.5, N=1)
+    positionMove([0,0,0.2,0],0.4,N=1)
+    positionMove([0,0,0,0],0.3, N=1)
+    #print_beacon_camera_diff()
     rospy.loginfo("Done.")
+
+    get_stats()
+    
+
     exit_handler()
 
     
