@@ -136,6 +136,9 @@ public:
     float y,
     float z,
     float yaw);
+//CYPHY
+  void ConsoleMsg(
+    char msg[]);
 
   void sendExternalPositionUpdate(
     float x,

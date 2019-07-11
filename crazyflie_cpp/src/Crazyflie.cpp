@@ -134,6 +134,19 @@ void Crazyflie::sendSetpoint(
   sendPacket((const uint8_t*)&testMsg, sizeof(testMsg));*/
 }
 
+//CYPHY
+void Crazyflie::ConsoleMsg(
+  char msg[] )
+{
+
+  char msgData[30]; 
+  std::memcpy(msgData, msg, 30);
+  msgData[29] = '\0';
+  printf("In crazyflie::consolemsg, sending msg with data:%s\n*******\n", msgData);
+  crtpConsoleRequest consoleMessage(msgData);
+  sendPacket((const uint8_t*)&consoleMessage, sizeof(consoleMessage));
+}
+
 void Crazyflie::sendStop()
 {
   crtpStopRequest request;
@@ -510,6 +523,13 @@ void Crazyflie::requestLogToc(bool forceNoCache)
   uint32_t crc = getRequestResult<crtpLogGetInfoResponse>(0)->log_crc;
 
   printf("In request log toc.\n*******\n");
+  /*char testComm[30]; 
+  testComm[0] = 'A';
+  testComm[1] = '%';
+  testComm[2] = '@';
+  testComm[3] = '\0';
+  crtpConsoleRequest testM(testComm);
+  sendPacket((const uint8_t*)&testM, sizeof(testM) );*/
 
   // check if it is in the cache
   std::string fileName = "log" + std::to_string(crc) + ".csv";

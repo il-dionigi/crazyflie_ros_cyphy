@@ -19,6 +19,7 @@
 #include "crazyflie_driver/Hover.h"
 #include "crazyflie_driver/Stop.h"
 #include "crazyflie_driver/Position.h"
+#include "crazyflie_driver/ConsoleMessage.h"
 #include "crazyflie_driver/crtpPacket.h"
 #include "crazyflie_cpp/Crazyradio.h"
 #include "crazyflie_cpp/crtp.h"
@@ -126,6 +127,7 @@ public:
     , m_subscribeCmdStop()
     // , m_subscribeCmdPosition()
     , m_subscribeCmdSetpoint()
+    , m_subscribeCmdConsoleMsg() // CYPHY
     , m_subscribeExternalPosition()
     , m_pubImu()
     , m_pubTemp()
@@ -285,6 +287,21 @@ void cmdSendSetpoint(
       m_sentSetpoint = true;
     }
   }
+//CYPHY
+void cmdConsoleMsg(
+     const crazyflie_driver::ConsoleMessage::ConstPtr& msg)
+  {
+
+      char msgData[30];
+      int ii = 0;
+      for (ii = 0; ii < 30; ii++){
+	msgData[ii] = (msg->data)[ii];
+        if (msgData[ii] == '\0'){ break; }
+      }
+  printf("In cmdConsoleMsg, msgData:%s\n*******\n", msgData);
+      m_cf.ConsoleMsg(msgData);
+    
+  }
 
   bool updateParams(
     crazyflie_driver::UpdateParams::Request& req,
@@ -399,7 +416,8 @@ void cmdSendSetpoint(
     m_subscribeCmdHover = n.subscribe(m_tf_prefix + "/cmd_hover", 1, &CrazyflieROS::cmdHoverSetpoint, this);
     m_subscribeCmdStop = n.subscribe(m_tf_prefix + "/cmd_stop", 1, &CrazyflieROS::cmdStop, this);
     // m_subscribeCmdPosition = n.subscribe(m_tf_prefix + "/cmd_position", 1, &CrazyflieROS::cmdPositionSetpoint, this);
-    m_subscribeCmdSetpoint = n.subscribe(m_tf_prefix + "/cmd_setpoint", 1, &CrazyflieROS::cmdSendSetpoint, this);
+    m_subscribeCmdSetpoint = n.subscribe(m_tf_prefix + "/cmd_setpoint", 1, &CrazyflieROS::cmdSendSetpoint, this); 
+    m_subscribeCmdConsoleMsg = n.subscribe(m_tf_prefix + "/cmd_console_msg", 1, &CrazyflieROS::cmdConsoleMsg, this); //CYPHY
     printf("prefix: %s\n", m_tf_prefix.c_str());
     m_serviceSetGroupMask = n.advertiseService(m_tf_prefix + "/set_group_mask", &CrazyflieROS::setGroupMask, this);
     m_serviceTakeoff = n.advertiseService(m_tf_prefix + "/takeoff", &CrazyflieROS::takeoff, this);
@@ -815,6 +833,7 @@ private:
   ros::Subscriber m_subscribeCmdStop;
   // ros::Subscriber m_subscribeCmdPosition;
   ros::Subscriber m_subscribeCmdSetpoint;
+  ros::Subscriber m_subscribeCmdConsoleMsg; // CYPHY
   ros::Subscriber m_subscribeExternalPosition;
   ros::Publisher m_pubImu;
   ros::Publisher m_pubTemp;
