@@ -24,12 +24,23 @@ beaconDists = [0,0,0,0, 0,0,0,0]
 beaconMins =  [0,0,0,0, 0,0,0,0]
 beaconMaxs =  [0,0,0,0, 0,0,0,0]
 beaconMeans = [0,0,0,0, 0,0,0,0]
+delta_pl32 = 0
+delta_ph8 = 0
+singleRanging = 0
+allRangings = 0
+betweenRounds = 0
+betweenRangings = 0
+singleRanging_h8 = 0
+allRangings_h8 = 0
+betweenRounds_h8 = 0
+betweenRangings_h8 = 0
 ts = [0,0,0, 0,0,0,0]
 count1 = 0
 count2 = 0
-samples = 20
+samples = 100
 #x, y, z, yaw
 currPos = [0,0,0,0] # current setpoint
+shift = [0,0]
 STOP = False
 delta_d_list = []
 delta_p_list = []
@@ -37,8 +48,23 @@ delta_b_list = []
 bc_diffx = []
 bc_diffy = []
 bc_diffz = []
+error = False
+
+
+def err_handler():
+    global error, STOP
+    if (not error):
+        rospy.loginfo("///|Exiting. sending stop command|///")    
+    stop_pub = rospy.Publisher("cmd_stop", Empty, queue_size=1)
+    stop_msg = Empty()
+    STOP = True
+    stop_pub.publish(stop_msg)
+    error = True
+    
+    
 
 def exit_handler():
+    global STOP
     rospy.loginfo("///Exiting. sending stop command///")
     positionMove([0,0,0,0],0.1)
     stop_pub = rospy.Publisher("cmd_stop", Empty, queue_size=1)
@@ -46,30 +72,34 @@ def exit_handler():
     STOP = True
     stop_pub.publish(stop_msg)
 
-
-#They have the same coords now, so this isn't needed
-def beaconToCameraCoords(pos_b):
-    shift = [0.0, 0.0, 0.0] # position according to beacons when camera pos is 0,0,0
-    pos_c = [0,0,0]
-    # shift
-    pos_c[0] = pos_b[0] - shift[0]
-    pos_c[1] = pos_b[1] - shift[1]
-    pos_c[2] = pos_b[2] - shift[2]
-    # rotate
-    pos_c[0] = pos_c[0]
-    pos_c[1] = pos_c[1]
-    return pos_c
+def check_within_bounds():
+    global cameraPos, shift
+    x, y, z = cameraPos
+    if ( -2.4 < x < 2.4 and -1.7 < y < 1.7 and z < 1.3):
+        return True
+    else:
+        if (y < -1.7):
+            shift[1] = 0.5
+        if (y > 1.7):
+            shift[1] = -0.5
+        if (x < -2):
+            shift[0] = 0.5
+        if (x > 2):
+            shift[0] = -0.5
+        #err_handler()
+        return False
     
 def callback_beacon_ranging1(data):
-    global beaconDists, count1, beaconMins, beaconMaxs, beaconMeans
+    global beaconDists, count1, beaconMins, beaconMaxs, beaconMeans, samples
     
     for i in range(4):
         beaconDists[i] = data.values[i]
-    """count1 = count1 + 1
+    """
+    count1 = count1 + 1
     if (count1 == samples):
         count1 = 0
         for i in range(4):
-            rospy.loginfo("{} Mean: {} Max: {} Min: {}".format(i, beaconMeans[i]/samples, beaconMaxs[i], beaconMins[i]))
+            rospy.loginfo("B{} Mean: {} Max: {} Min: {}".format(i, beaconMeans[i]/samples, beaconMaxs[i], beaconMins[i]))
             beaconMaxs[i] = data.values[i]
             beaconMins[i] = data.values[i]
             beaconMeans[i] = data.values[i]  
@@ -79,12 +109,30 @@ def callback_beacon_ranging1(data):
                 beaconMaxs[i] = beaconDists[i]
             if beaconDists[i] < beaconMins[i]:
                 beaconMins[i] = beaconDists[i]
-            beaconMeans[i] += beaconDists[i]"""
+            beaconMeans[i] += beaconDists[i]
+    """
 
 def callback_beacon_ranging2(data):
     global beaconDists, count2
     for i in range(4,8):
         beaconDists[i] = data.values[i-4]
+    """
+    count2 = count2 + 1
+    if (count2 == samples):
+        count2 = 0
+        for i in range(4,8):
+            rospy.loginfo("B{} Mean: {} Max: {} Min: {}".format(i, beaconMeans[i]/samples, beaconMaxs[i], beaconMins[i]))
+            beaconMaxs[i] = data.values[i-4]
+            beaconMins[i] = data.values[i-4]
+            beaconMeans[i] = data.values[i-4]  
+    else:
+        for i in range(4,8):
+            if beaconDists[i] > beaconMaxs[i]:
+                beaconMaxs[i] = beaconDists[i]
+            if beaconDists[i] < beaconMins[i]:
+                beaconMins[i] = beaconDists[i]
+            beaconMeans[i] += beaconDists[i]
+    """
 
 def callback_pos_beacons(data):
     global beaconPos
@@ -104,13 +152,14 @@ def callback_pos_camera(data):
     cameraPos[0] = data.point.x
     cameraPos[1] = data.point.y
     cameraPos[2] = data.point.z
+    check_within_bounds()
 
 def callback_twr_time(data):
-    global ts, delta_d_list, delta_p_list, delta_b_list
+    global ts, delta_d_list, delta_p_list, delta_b_list, delta_pl32, delta_ph8
     for i in range(len(data.values)):
         ts[i] = data.values[i]
 
-    delta_p_list.append(1000*((ts[5])/LOCODECK_TS_FREQ + ts[6]*(2**32/LOCODECK_TS_FREQ)) )
+    #delta_p_list.append(1000*((ts[5])/LOCODECK_TS_FREQ + ts[6]*(2**32/LOCODECK_TS_FREQ)) )
     delta_d_list.append(1000*(ts[4]-ts[3])/LOCODECK_TS_FREQ)
 
 
@@ -120,16 +169,39 @@ def callback_twr_beacon(data):
         delta_bs[i] = data.values[i]
     delta_b_list.append(1000*delta_bs[0]/LOCODECK_TS_FREQ)
 
+def callback_twr_other(data):
+    global singleRanging, allRangings, betweenRounds, betweenRangings, singleRanging_h8, allRangings_h8, betweenRounds_h8, betweenRangings_h8
+    singleRanging = data.values[0]
+    allRangings = data.values[1]
+    betweenRounds = data.values[2]
+    betweenRangings = data.values[3]
+
+    singleRanging_h8 = data.values[4]
+    allRangings_h8 = data.values[5]
+    betweenRounds_h8 = data.values[6]
+    #betweenRangings_h8 = data.values[7]
+
+   
+
 def publisherThread():
-    global currPos
+    global currPos, shift
     sequence = 0
     while not rospy.is_shutdown():
         if STOP:
+            msgPos.x = 0
+	    msgPos.y = 0
+	    msgPos.z = 0 
+            msgPos.header.seq = sequence
+            msgPos.header.stamp = rospy.Time.now()
+            for j in range(10):
+                pubPos.publish(msgPos)
+                sequence += 1
+                rate.sleep()
             return
-    
-        msgPos.x = currPos[0]
-        msgPos.y = currPos[1]
-        msgPos.z = currPos[2]
+        else:
+	    msgPos.x = currPos[0]+shift[0]
+	    msgPos.y = currPos[1]+shift[1]
+	    msgPos.z = currPos[2]
         msgPos.yaw = currPos[3]
         msgPos.header.seq = sequence
         msgPos.header.stamp = rospy.Time.now()
@@ -140,26 +212,36 @@ def publisherThread():
         sequence += 1
         rate.sleep() 
 
-def positionMove(pos=[0,0,0,0], t=1, N=20):
-    global currPos
-    currPos = pos
+def positionMove(pos=[0,0,0,0], t=1, N=1):
+    global currPos, STOP
+    currPos = pos      
+    if (STOP):
+        return
     for i in range(N):
         rospy.sleep(1.0*t/N)
-        if (N > 1):
+        if (N > 2):
             get_diff()
         #print_beacon_camera_diff()
 
 def get_diff():
-    global cameraPos, beaconPos2, bc_diffx, bc_diffy, bc_diffz
+    global cameraPos, beaconPos2, bc_diffx, bc_diffy, bc_diffz, delta_p_list, ts
     dx = cameraPos[0] - beaconPos2[0]
     dy = cameraPos[1] - beaconPos2[1]
     dz = cameraPos[2] - beaconPos2[2]
+    if (np.abs(dx) > 2.5 or np.abs(dy) > 2.5):
+        err_handler()
     bc_diffx.append(np.abs(dx))
     bc_diffy.append(np.abs(dy))
     bc_diffz.append(np.abs(dz))
+    delta_p_list.append(1000*((ts[5])/LOCODECK_TS_FREQ + ts[6]*(2**32/LOCODECK_TS_FREQ)) )
 
 def get_stats():
-    global delta_b_list, delta_d_list, delta_p_list, bc_diffx, bc_diffy, bc_diffy
+    global error, delta_b_list, delta_d_list, delta_p_list, bc_diffx, bc_diffy, bc_diffy
+    if (error or len(delta_p_list) < 2 or np.std(delta_p_list) == 0):
+        rospy.loginfo("XXXX ERROR XXXX DID NOT SAVE XXXX")
+        return
+    else:
+        rospy.loginfo("XXXX SAVED XXXX")
     rospy.loginfo("STATS: delta_b, delta_d, delta_p in ms, dx, dy, dz in m")
     #rospy.loginfo("db mean:{}, stddev:{}, max-min:{}".format(np.mean(delta_b_list), np.std(delta_b_list), np.max(delta_b_list)-np.min(delta_b_list)))
     #rospy.loginfo("dd mean:{}, stddev:{}, max-min:{}".format(np.mean(delta_d_list), np.std(delta_d_list), np.max(delta_d_list)-np.min(delta_d_list)))
@@ -168,6 +250,7 @@ def get_stats():
     rospy.loginfo("dx mean:{}, stddev:{}, max-min:{}".format(np.mean(bc_diffx), np.std(bc_diffx), np.max(bc_diffx)-np.min(bc_diffx)))
     rospy.loginfo("dy mean:{}, stddev:{}, max-min:{}".format(np.mean(bc_diffy), np.std(bc_diffy), np.max(bc_diffy)-np.min(bc_diffy)))
     rospy.loginfo("dz mean:{}, stddev:{}, max-min:{}".format(np.mean(bc_diffz), np.std(bc_diffz), np.max(bc_diffz)-np.min(bc_diffz)))
+    
     f = open("delta_p_"+str(np.mean(delta_p_list))+".txt", "a")
     f.write("\nNEW RUN: \ndp=" + str(np.mean(delta_p_list) ) + "\n")
     f.write("\nmeanx:{}\n".format(np.mean(bc_diffx) ))
@@ -183,7 +266,7 @@ def get_stats():
     for num in bc_diffz:
         f.write("\ndz:"+str(num))
 
-def print_beacon_camera_diff():
+def print_beacon_camera_diff(ranging_data=False):
     global cameraPos, beaconPos, beaconPos2, beaconDists
     dx = cameraPos[0] - beaconPos2[0]
     dy = cameraPos[1] - beaconPos2[1]
@@ -192,12 +275,12 @@ def print_beacon_camera_diff():
     #rospy.loginfo("beaconSE... x:"+ str(beaconPos[0]) + " y:" + str(beaconPos[1]) + " z:" + str(beaconPos[2]))
     rospy.loginfo("beaconKF... x:"+ str(beaconPos2[0]) + " y:" + str(beaconPos2[1]) + " z:" + str(beaconPos2[2]))
     rospy.loginfo("diff... dx:"+ str(dx) + " dy:" + str(dy) + " dz:" + str(dz))
-    """rospy.loginfo("beaconDists...")
-    rospy.loginfo("0: " + str(beaconDists[0]) + " 1: " + str(beaconDists[1]))
-    rospy.loginfo("2: " + str(beaconDists[2]) + " 3: " + str(beaconDists[3]))
-    rospy.loginfo("4: " + str(beaconDists[4]) + " 5: " + str(beaconDists[5]))
-    rospy.loginfo("6: " + str(beaconDists[6]) + " 7: " + str(beaconDists[7]))"""
-
+    if (not ranging_data):
+        return
+    rospy.loginfo("beaconDists...")
+    for i in range(8):
+    	rospy.loginfo(str(i) + ": " + str(beaconDists[i]) + "(mean:" + str(beaconMeans[i]) + ")")
+    
 def print_ts():
     global ts
     rospy.loginfo("times: ")
@@ -205,18 +288,29 @@ def print_ts():
     #    rospy.loginfo("t{}: {}".format(i+1, ts[i]))
     rospy.loginfo("calculated deltas (s):\n delta_beacon:{}, delta_drone:{}, delta_p:{}".format((ts[2]-ts[1])/LOCODECK_TS_FREQ, (ts[4]-ts[3])/LOCODECK_TS_FREQ, ts[5]/LOCODECK_TS_FREQ))
 
-def print_deltas():
+def print_deltas(only_dp=False):
     global delta_bs, ts
-    rospy.loginfo("delta_bs: ")
-    for i in range(6):
-        rospy.loginfo("delta_b{}: {}".format(i, delta_bs[i]/LOCODECK_TS_FREQ))
-    rospy.loginfo("delta_drone:{}".format((ts[4]-ts[3])/LOCODECK_TS_FREQ))
+    if not only_dp:
+	rospy.loginfo("delta_bs: ")
+	for i in range(6):
+            rospy.loginfo("delta_b{}: {}".format(i, delta_bs[i]/LOCODECK_TS_FREQ))
+	rospy.loginfo("delta_drone:{}".format((ts[4]-ts[3])/LOCODECK_TS_FREQ))
     #rospy.loginfo("delta_pl32:{}".format((ts[5])/LOCODECK_TS_FREQ))
     #rospy.loginfo("delta_ph8:{}".format((ts[6])/LOCODECK_TS_FREQ))
-    rospy.loginfo("delta_p:{}".format((ts[5])/LOCODECK_TS_FREQ + ts[6]*(2**32/LOCODECK_TS_FREQ) ))
+    rospy.loginfo("delta_p:{}".format(ticksToTime(ts[5], ts[6])) )
+
+def print_twr_other():
+    global singleRanging, allRangings, betweenRounds, betweenRangings, singleRanging_h8, allRangings_h8, betweenRounds_h8, betweenRangings_h8
+    rospy.loginfo("singleRanging:{}".format(ticksToTime(singleRanging, singleRanging_h8)))
+    rospy.loginfo("allRangings:{}".format(ticksToTime(allRangings, allRangings_h8)))
+    rospy.loginfo("betweenRounds:{}".format(ticksToTime(betweenRounds, betweenRounds_h8)))
+    rospy.loginfo("betweenRangings:{}".format(ticksToTime(betweenRangings, betweenRangings_h8)))
 
 def setpoints_to_time(s1, s2):
     return 1.2*((s1[0] - s2[0])**2 + (s1[1]-s2[1])**2)**(0.5)
+
+def ticksToTime(ticks_low, ticks_high=0):
+    return (ticks_low/LOCODECK_TS_FREQ) + ticks_high*(2**32/LOCODECK_TS_FREQ) 
 
 if __name__ == '__main__':
     atexit.register(exit_handler)
@@ -224,12 +318,13 @@ if __name__ == '__main__':
     worldFrame = rospy.get_param("~worldFrame", "/world")
     rate = rospy.Rate(10) #  hz
     rospy.Subscriber("external_position", PointStamped, callback_pos_camera)
-    #rospy.Subscriber("SE", GenericLogData, callback_pos_beacons)
+    rospy.Subscriber("SE", GenericLogData, callback_pos_beacons)
     rospy.Subscriber("KF", GenericLogData, callback_pos_beacons2)
-    #rospy.Subscriber("Ranging1", GenericLogData, callback_beacon_ranging1)
-    #rospy.Subscriber("Ranging2", GenericLogData, callback_beacon_ranging2)
+    rospy.Subscriber("Ranging1", GenericLogData, callback_beacon_ranging1)
+    rospy.Subscriber("Ranging2", GenericLogData, callback_beacon_ranging2)
     rospy.Subscriber("TWRtime", GenericLogData, callback_twr_time)
     rospy.Subscriber("TWRbeacons", GenericLogData, callback_twr_beacon)
+    rospy.Subscriber("TWRother", GenericLogData, callback_twr_other)
     #for position mode
     msgPos = Position()
     msgPos.header.seq = 0
@@ -246,23 +341,28 @@ if __name__ == '__main__':
     msgConsole.header.seq = 0
     msgConsole.header.stamp = rospy.Time.now()
     msgConsole.header.frame_id = worldFrame
-    msgConsole.data = [ord('y'), ord('r'), ord('L'), 0]
+    msgConsole.data = [ord('%'), ord('T'), ord('S'), 0]
     pubConsole = rospy.Publisher("cmd_console_msg", ConsoleMessage, queue_size=1)
+    delta_p_param = 0
+    msgConsole.data = [ord('%'), ord('T'), ord('S'), delta_p_param, 0, 0, 0]
 
     rospy.wait_for_service('update_params')
     rospy.loginfo("found update_params service")
     update_params = rospy.ServiceProxy('update_params', UpdateParams)
-
+    #pubConsole.publish(msgConsole)
     rospy.set_param("kalman/resetEstimation", 1)
     update_params(["kalman/resetEstimation"])
     rospy.sleep(0.1)
     rospy.set_param("kalman/resetEstimation", 0)
     update_params(["kalman/resetEstimation"])
     rospy.sleep(0.1)
+    #pubConsole.publish(msgConsole)
     rospy.set_param("flightmode/posSet", 1)
     update_params(["flightmode/posSet"])
     rospy.sleep(3)
-    pubConsole.publish(msgConsole)
+
+
+    #pubConsole.publish(msgConsole)
     msgPublisher = Thread(target=publisherThread)
     msgPublisher.start()
 
@@ -270,29 +370,48 @@ if __name__ == '__main__':
     print_beacon_camera_diff()
 
     rospy.sleep(2)
-    
-    for i in range(1000):
-        rospy.sleep(10)
-        print_deltas()
-        print_beacon_camera_diff()
+
+
+    #test code
+    while (True):
+        rospy.sleep(1)
+        print_twr_other()
+        print_deltas(True)
+        #print_beacon_camera_diff(ranging_data=False)
+        #num = i
+        #msgConsole.data = [ord('%'), ord('T'), ord('S'), num, 0, 0, 0]
+        #pubConsole.publish(msgConsole)
         #rospy.sleep(2)
-        #print_ts() 
+        #print_ts()
 
-  
 
-    
-    positionMove([beaconPos2[0],beaconPos2[1],0.4,0],.1, N=1) #takeoff
+    if cameraPos[0] + cameraPos[1] == 0:
+        err_handler()
+
+    positionMove([beaconPos2[0],beaconPos2[1],0.1,0],.1, N=1) #takeoff
     rospy.loginfo("SHOULD BE IN AIR?!...")
     setpoint = [0,0,0.5,0]
     last_sp = setpoint
-    #positionMove(setpoint, timeAlloted+3, N=1) #zero x,y
+    positionMove(setpoint, 0.5, N=2) #zero x,y
+
+    rospy.sleep(1)
+
+    print_deltas(only_dp=True)
+    rospy.sleep(1)
+    print_deltas(only_dp=True)    
+    for j in range(3):
+        setpoint = [-0.7*cameraPos[0], -0.7*cameraPos[1], 0.5, 0]
+        positionMove(setpoint, 1.5, N=1) #zero x,y
+
+
     #square_setpoints = [ [0,0.5,0.5,0], [0.5,0.5,0.5,0],  [0.5,0,0.5,0], [0,0,0.5,0] ]
-    large_square = [ [1,0.5,0.5,0], [-1,0.5,0.5,0],  [-1,-0.5,0.5,0], [1,-0.5,0.5,0], [0,0,0.5,0] ]
+    #large_square = [ [1.5,0.5,0.5,0], [-1.5,0.5,0.5,0],  [-1.5,-0.5,0.5,0], [1.5,-0.5,0.5,0], [0,0,0.5,0] ]
+    large_square_difz = [ [1.5,0.5,0.4,0], [-1.5,0.5,0.7,0],  [-1.5,-0.5,0.5,0], [1.5,-0.5,0.3,0], [0,0,0.4,0] ]
     #triangle_setpoints = [ [0,0.5,0.5,0], [-0.3,0,0.5,0],  [0.3,0,0.5,0], [0,0.5,0.5,0] ]
     #traj_setpoints = [ [0, 0, 0.5, 0], [-1, 0, 0.5, 0], [0, -0.8, 0.5, 0], [-0.5, -0.5, 0.5, 0], [1, -0.2, 0.5, 0], [0.5, 0.3, 0.5, 0], [1, -0.5, 0.5, 0], [0,0,0.5,0] ]
-    sp_list = large_square
+    sp_list = large_square_difz
     for i in range(len(sp_list)):
-        setpoint = traj_setpoints[i]
+        setpoint = sp_list[i]
         timeAlloted = setpoints_to_time(setpoint, last_sp)
         positionMove(setpoint, timeAlloted, N=50)
         last_sp = setpoint

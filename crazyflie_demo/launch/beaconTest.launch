@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="uri" default="radio://0/95/2M/E7E7E7E7E7" /> <!--Adjust this parameter-->
+  <arg name="uri" default="radio://0/82/2M/E7E7E7E7E7" /> <!--Adjust this parameter-->
   <arg name="frame" default="cf1" /> <!--For OptiTrack users: frame name should match the Rigid-body name on Motive-->
   <arg name="ip" default="192.168.1.198" /> <!--Adjust this parameter-->
   <arg name="port" default="3883" />
@@ -22,21 +22,22 @@
       <param name="enable_logging_pose" value="True" />
 <!--
       <rosparam>
-        genericLogTopics: ["SE", "KF", "Ranging1", "Ranging2", "TWRtime"]
+        genericLogTopics: ["SE", "KF","TWRtime", "TWRbeacons", "Ranging1", "Ranging2", "TWRother"]
         genericLogTopicFrequencies: [100, 100, 100, 100, 100]
         genericLogTopic_SE_Variables: ["stateEstimate.x", "stateEstimate.y", "stateEstimate.z"]
         genericLogTopic_KF_Variables: ["kalman.stateX", "kalman.stateY", "kalman.stateZ"]
         genericLogTopic_Ranging1_Variables: ["ranging.distance0", "ranging.distance1", "ranging.distance2", "ranging.distance3"]
         genericLogTopic_Ranging2_Variables: ["ranging.distance4", "ranging.distance5", "ranging.distance6", "ranging.distance7"]
-        genericLogTopic_TWRtime_Variables: ["twr.t1", "twr.t2", "twr.t3", "twr.t4", "twr.t5", "twr.t6"]
+        genericLogTopic_TWRtime_Variables: ["twr.t1", "twr.t2", "twr.t3", "twr.t4", "twr.t5", "twr.delta_p", "twr.delta_ph8"]
+        genericLogTopic_TWRother_Variables: ["twrOther.singleRanging", "twrOther.allRangings", "twrOther.betweenRounds", "twrOther.betweenRangings" ]
       </rosparam>
 -->
       <rosparam>
-        genericLogTopics: ["KF", "TWRtime", "TWRbeacons"]
+        genericLogTopics: ["KF", "TWRtime", "TWRother"]
         genericLogTopicFrequencies: [100, 100, 100]
         genericLogTopic_KF_Variables: ["kalman.stateX", "kalman.stateY", "kalman.stateZ"]
         genericLogTopic_TWRtime_Variables: ["twr.t1", "twr.t2", "twr.t3", "twr.t4", "twr.t5", "twr.delta_p", "twr.delta_ph8"]
-        genericLogTopic_TWRbeacons_Variables: ["twrBeacons.delta_b0", "twrBeacons.delta_b1","twrBeacons.delta_b2","twrBeacons.delta_b3","twrBeacons.delta_b4","twrBeacons.delta_b5",]
+        genericLogTopic_TWRother_Variables: ["twrOther.singleRanging", "twrOther.allRangings", "twrOther.betweenRounds", "twrOther.betweenRangings", "twrOther.singleRanging_h8", "twrOther.allRangings_h8", "twrOther.betweenRounds_h8"]
       </rosparam>       
             
     </node>

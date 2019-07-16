@@ -1,0 +1,13 @@
+singleRanging: = beacon0 t8 - beacon0 t1 = ~2ms 
+allRangings: = beacon7 t8 - beacon0 t1 = ~128ms 
+betweenRounds: = beacon0 t1 (new) - beacon0 t1 (old) = ~67ms (???)
+betweenRangings: = beacon1 t1 - beacon0 t8 = ~6.5ms
+delta_p: = beacon0 t1 (new) - beacon0 t8 (old) = ~130ms
+
+[INFO] [WallTime: 1563313243.139195] singleRanging:0.00188604540703
+[INFO] [WallTime: 1563313243.139576] allRangings:0.128048493981
+[INFO] [WallTime: 1563313243.139920] betweenRounds:0.0672165304487
+[INFO] [WallTime: 1563313243.140121] betweenRangings:0.00651613408015
+[INFO] [WallTime: 1563313243.140268] delta_p:0.132529943034
+
+IN SECONDS
