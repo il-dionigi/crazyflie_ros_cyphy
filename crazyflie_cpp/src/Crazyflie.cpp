@@ -952,10 +952,49 @@ void Crazyflie::handleAck(
         }
         else{
           //channel =3 , testing channel
-          //want to print bytes
-          crtpConsoleResponse* r = (crtpConsoleResponse*)result.data;
+		  crtpConsoleResponse* r = (crtpConsoleResponse*)result.data;
+		  if (r->text[0] == '='){
+			  m_logger.info("Got xyz~:");
+		  }
+		  int i;
+		  uint32_t x = 0;
+		  uint32_t y = 0;
+		  uint32_t z = 0;
+		  for (i = 0; i < 4; i++){
+			if (i == 0){
+				x = r->text[i+1];
+			}
+			else{
+				x = x + (r->text[i+1])<<(8*i);
+			}
+		  } //forx
+		  for (i = 0; i < 4; i++){
+			if (i == 0){
+				y = r->text[i+5];
+			}
+			else{
+				y = y + (r->text[i+5])<<(8*i);
+			}
+		  } //fory
+		  for (i = 0; i < 4; i++){
+			if (i == 0){
+				z = r->text[i+9];
+			}
+			else{
+				z = z + (r->text[i+9])<<(8*i);
+			}
+		  } //forz
+		  // convert xyz to float
+		  float fx, fy, fz;
+		  fx = *( (float*)&x);
+		  fy = *( (float*)&y); 
+		  fz = *( (float*)&z); 
+		  printf("FLOATS: x:%.2f, y:%.2f, z:%.2f\n", fx, fy, fz);
+
+          /*
+		  //want to print bytes
           char hex[17] = "0123456789ABCDEF";
-          int i;
+          
           char toPrint[64];
           int index = 0; 
           for (i = 0; i < (int)result.size; i++){
@@ -965,6 +1004,7 @@ void Crazyflie::handleAck(
           }
           toPrint[index] = 0;
           printf("BYTES: %s\n", toPrint);
+		  */
         }
       }
     }
