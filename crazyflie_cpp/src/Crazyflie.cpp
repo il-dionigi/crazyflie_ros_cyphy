@@ -953,6 +953,7 @@ void Crazyflie::handleAck(
         else{
           //channel =3 , testing channel
 		  crtpConsoleResponse* r = (crtpConsoleResponse*)result.data;
+	          m_logger.info("Got channel 3 response~:");
 		  if (r->text[0] == '='){
 			  m_logger.info("Got xyz~:");
 		  }
@@ -962,26 +963,26 @@ void Crazyflie::handleAck(
 		  uint32_t z = 0;
 		  for (i = 0; i < 4; i++){
 			if (i == 0){
-				x = r->text[i+1];
+				x = r->text[3-i+1];
 			}
 			else{
-				x = x + (r->text[i+1])<<(8*i);
+				x = x*256 + r->text[3-i+1];
 			}
 		  } //forx
 		  for (i = 0; i < 4; i++){
 			if (i == 0){
-				y = r->text[i+5];
+				y = r->text[3-i+5];
 			}
 			else{
-				y = y + (r->text[i+5])<<(8*i);
+				y = y*256 + r->text[3-i+5];
 			}
 		  } //fory
 		  for (i = 0; i < 4; i++){
 			if (i == 0){
-				z = r->text[i+9];
+				z = r->text[3-i+9];
 			}
 			else{
-				z = z + (r->text[i+9])<<(8*i);
+				z = z*256 + r->text[3-i+9];
 			}
 		  } //forz
 		  // convert xyz to float

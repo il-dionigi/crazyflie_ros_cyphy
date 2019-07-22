@@ -14,7 +14,8 @@ from crazyflie_driver.srv import UpdateParams
 from threading import Thread
 from geometry_msgs.msg import PointStamped, TransformStamped, PoseStamped #PoseStamped added to support vrpn_client
 
-
+Order = 'F'
+delta_p_param = 0
 LOCODECK_TS_FREQ = 499.2*(10**6) * 128
 delta_bs = [0,0,0,0, 0,0,0,0]
 beaconPos = [0,0,0]
@@ -49,7 +50,13 @@ bc_diffx = []
 bc_diffy = []
 bc_diffz = []
 error = False
-
+tofs = [1,2,3, 4]
+encStates = []
+#x,y,z,K
+encState = [0,0,0,0]
+Ktotal = 0.000001
+K1count = 0
+obstacles = [ [1,1,0.6], [0,2,0.2], [2,-0.5,0.3], [-1, -6, 3] ]
 
 def err_handler():
     global error, STOP
@@ -62,7 +69,6 @@ def err_handler():
     error = True
     
     
-
 def exit_handler():
     global STOP
     rospy.loginfo("///Exiting. sending stop command///")
@@ -181,7 +187,22 @@ def callback_twr_other(data):
     betweenRounds_h8 = data.values[6]
     #betweenRangings_h8 = data.values[7]
 
-   
+def callback_twr_eve(data):
+    global tofs
+    for i in range(4):
+        tofs[i] = data.values[i]
+    #est, est2 actual_add, actual_mult
+
+def callback_twr_enc(data):
+    global encStates, encState, Ktotal, K1count
+    if (encState[0] == data.values[0]):
+        return
+    for i in range(4):
+        encState[i] = data.values[i]
+    encStates.append(np.copy(encState))
+    Ktotal += 1
+    K1count += encState[3]
+
 
 def publisherThread():
     global currPos, shift
@@ -251,8 +272,9 @@ def get_stats():
     rospy.loginfo("dy mean:{}, stddev:{}, max-min:{}".format(np.mean(bc_diffy), np.std(bc_diffy), np.max(bc_diffy)-np.min(bc_diffy)))
     rospy.loginfo("dz mean:{}, stddev:{}, max-min:{}".format(np.mean(bc_diffz), np.std(bc_diffz), np.max(bc_diffz)-np.min(bc_diffz)))
     
-    f = open("delta_p_"+str(np.mean(delta_p_list))+".txt", "a")
+    f = open("order:"+Order+str(np.mean(delta_p_list))+".txt", "a")
     f.write("\nNEW RUN: \ndp=" + str(np.mean(delta_p_list) ) + "\n")
+    f.write("\nstddevdp:{}\n".format(np.std(delta_p_list) ))
     f.write("\nmeanx:{}\n".format(np.mean(bc_diffx) ))
     f.write("\nstddevx:{}\n".format(np.std(bc_diffx) ))
     f.write("\nmeany:{}\n".format(np.mean(bc_diffy) ))
@@ -265,6 +287,76 @@ def get_stats():
         f.write("\ndy:"+str(num))
     for num in bc_diffz:
         f.write("\ndz:"+str(num))
+
+def save_enc_trace():
+    global encStates, K1count, Ktotal
+    if (len(encStates) < 2 or K1count < 2):
+        rospy.loginfo("XXXX ERROR XXXX DID NOT SAVE XXXX")
+        return
+    else:
+        rospy.loginfo("XXXX SAVED XXXX")
+    mse = 0
+    f = open("EncK1percent:{}.txt".format(1.0*K1count/Ktotal), "a")
+    f.write("NEW RUN\n")
+    for estate in encStates:
+        actual = [ estate[0], estate[1], estate[2] ]
+        if (estate[3]):
+            actual = [-actual[0], -actual[1], 3-actual[2] ]
+        for i in range(3):
+            f.write(str(estate[i]) + ",")
+        f.write(str(estate[3]) + "\n")
+
+    p1, p2 = eve_split_trajs()
+    path = p1
+    if (check_collision(p1) ):
+        path = p2
+    elif (check_collision(p2) ):
+        path = p1
+    else:
+        print("NO CRASHES, GUESS")
+    
+    mse = 0 
+    for i in range(len(path)):
+        actual = encStates[i]
+        if actual[3]:
+            actual = mirror(np.copy(actual))
+        mse += dist(path[i], actual)
+    mse = mse / len(path)
+    print("ERROR:{}".format(mse))
+    if (mse == 0):
+        print("Attack succesful!")
+    else:
+        print("Attack failed")
+    
+def check_collision(path):
+    global obstacles
+    for point in path:
+        px, py, pz = point
+        for obs in obstacles:
+            ox, oy, orad = obs
+            if ( abs(px - ox) < orad and abs(py - oy) < orad ):
+                return True
+    return False 
+
+def mirror(point):
+    return [ -point[0], -point[1], 3-point[2] ]
+
+def eve_split_trajs():
+    #get the 2 possible trajectories
+    global encStates
+    path1 = [ encStates[0][:3] ]
+    path2 = [ mirror(encStates[0]) ]
+    for i in range(1, len(encStates)):
+        p1last = path1[-1]
+        p2last = path2[-1]
+        if (dist(p1last, encStates[i]) < dist(p2last, encStates[i]) ):
+            path1.append(encStates[i][:3] )
+            path2.append( mirror(encStates[i]) )
+        else:
+            path2.append(encStates[i][:3] )
+            path1.append( mirror(encStates[i]) )
+    return path1, path2
+    
 
 def print_beacon_camera_diff(ranging_data=False):
     global cameraPos, beaconPos, beaconPos2, beaconDists
@@ -306,8 +398,26 @@ def print_twr_other():
     rospy.loginfo("betweenRounds:{}".format(ticksToTime(betweenRounds, betweenRounds_h8)))
     rospy.loginfo("betweenRangings:{}".format(ticksToTime(betweenRangings, betweenRangings_h8)))
 
+def print_twr_eve():
+    global tofs
+    dists = [x*3*10**8 for x in tofs]
+    rospy.loginfo("ESTIMATE_ADD TOF:{}, DIST:{}".format(tofs[0],dists[0]))
+    rospy.loginfo("ESTIMATE_MULT TOF:{}, DIST:{}".format(tofs[1],dists[1]))
+    rospy.loginfo("ACTUAL_ADD TOF:{}, DIST:{}".format(tofs[2],dists[2]))
+    rospy.loginfo("ACTUAL_MULT TOF:{}, DIST:{}".format(tofs[3],dists[3]))
+
+def print_enc():
+    global encState, beaconPos2, K1count, Ktotal
+    rospy.loginfo("Beacon v Enc(K={}), K1%:{}".format(encState[3], 1.0*K1count/Ktotal))
+    s = "xyz"
+    for i in range(3):
+        rospy.loginfo("{}  b:{},e:{}".format(s[i], beaconPos2[i], encState[i]))
+
+def dist(s1, s2):
+    return ((s1[0] - s2[0])**2 + (s1[1]-s2[1])**2 + (s1[2] - s2[2])**2)**(0.5)
+
 def setpoints_to_time(s1, s2):
-    return 1.2*((s1[0] - s2[0])**2 + (s1[1]-s2[1])**2)**(0.5)
+    return 1.2*dist(s1, s2)
 
 def ticksToTime(ticks_low, ticks_high=0):
     return (ticks_low/LOCODECK_TS_FREQ) + ticks_high*(2**32/LOCODECK_TS_FREQ) 
@@ -325,6 +435,8 @@ if __name__ == '__main__':
     rospy.Subscriber("TWRtime", GenericLogData, callback_twr_time)
     rospy.Subscriber("TWRbeacons", GenericLogData, callback_twr_beacon)
     rospy.Subscriber("TWRother", GenericLogData, callback_twr_other)
+    rospy.Subscriber("TWReve", GenericLogData, callback_twr_eve)
+    rospy.Subscriber("TWRenc", GenericLogData, callback_twr_enc)
     #for position mode
     msgPos = Position()
     msgPos.header.seq = 0
@@ -343,9 +455,11 @@ if __name__ == '__main__':
     msgConsole.header.frame_id = worldFrame
     msgConsole.data = [ord('%'), ord('T'), ord('S'), 0]
     pubConsole = rospy.Publisher("cmd_console_msg", ConsoleMessage, queue_size=1)
-    delta_p_param = 0
-    msgConsole.data = [ord('%'), ord('T'), ord('S'), delta_p_param, 0, 0, 0]
-
+    #msgConsole.data = [ord('%'), ord('T'), ord('S'), delta_p_param, 0, 0, 0] # CHANGE TDMA SLOT
+    #msgConsole.data = [ord('%'), ord('O'), ord('F'), 0, 0, 0, 0] # CHANGE TO FIXED ORDER
+    #msgConsole.data = [ord('%'), ord('O'), ord('R'), 0, 0, 0, 0] # CHANGE TO RANDOM ORDER
+    #msgConsole.data = [ord('%'), ord('O'), ord(Order), 0, 0, 0, 0]
+    msgConsole.data = [ord('%'), ord('S'), ord('F'), 0, 0, 0, 0]
     rospy.wait_for_service('update_params')
     rospy.loginfo("found update_params service")
     update_params = rospy.ServiceProxy('update_params', UpdateParams)
@@ -356,13 +470,13 @@ if __name__ == '__main__':
     rospy.set_param("kalman/resetEstimation", 0)
     update_params(["kalman/resetEstimation"])
     rospy.sleep(0.1)
-    #pubConsole.publish(msgConsole)
+    pubConsole.publish(msgConsole)
     rospy.set_param("flightmode/posSet", 1)
     update_params(["flightmode/posSet"])
     rospy.sleep(3)
 
 
-    #pubConsole.publish(msgConsole)
+    pubConsole.publish(msgConsole)
     msgPublisher = Thread(target=publisherThread)
     msgPublisher.start()
 
@@ -373,43 +487,39 @@ if __name__ == '__main__':
 
 
     #test code
+    """
     while (True):
         rospy.sleep(1)
-        print_twr_other()
-        print_deltas(True)
+        #print_twr_other()
+        #print_twr_eve()
+        #print_ts()
+        #print_deltas(True)
         #print_beacon_camera_diff(ranging_data=False)
+        print_enc()
         #num = i
         #msgConsole.data = [ord('%'), ord('T'), ord('S'), num, 0, 0, 0]
         #pubConsole.publish(msgConsole)
         #rospy.sleep(2)
         #print_ts()
 
-
     if cameraPos[0] + cameraPos[1] == 0:
         err_handler()
+    """
 
+    """
     positionMove([beaconPos2[0],beaconPos2[1],0.1,0],.1, N=1) #takeoff
     rospy.loginfo("SHOULD BE IN AIR?!...")
     setpoint = [0,0,0.5,0]
     last_sp = setpoint
     positionMove(setpoint, 0.5, N=2) #zero x,y
-
     rospy.sleep(1)
-
-    print_deltas(only_dp=True)
-    rospy.sleep(1)
-    print_deltas(only_dp=True)    
-    for j in range(3):
-        setpoint = [-0.7*cameraPos[0], -0.7*cameraPos[1], 0.5, 0]
-        positionMove(setpoint, 1.5, N=1) #zero x,y
-
-
+    
     #square_setpoints = [ [0,0.5,0.5,0], [0.5,0.5,0.5,0],  [0.5,0,0.5,0], [0,0,0.5,0] ]
     #large_square = [ [1.5,0.5,0.5,0], [-1.5,0.5,0.5,0],  [-1.5,-0.5,0.5,0], [1.5,-0.5,0.5,0], [0,0,0.5,0] ]
-    large_square_difz = [ [1.5,0.5,0.4,0], [-1.5,0.5,0.7,0],  [-1.5,-0.5,0.5,0], [1.5,-0.5,0.3,0], [0,0,0.4,0] ]
+    #large_square_difz = [ [1.5,0.5,0.4,0], [-1.5,0.5,0.7,0],  [-1.5,-0.5,0.5,0], [1.5,-0.5,0.3,0], [0,0,0.4,0] ]
     #triangle_setpoints = [ [0,0.5,0.5,0], [-0.3,0,0.5,0],  [0.3,0,0.5,0], [0,0.5,0.5,0] ]
-    #traj_setpoints = [ [0, 0, 0.5, 0], [-1, 0, 0.5, 0], [0, -0.8, 0.5, 0], [-0.5, -0.5, 0.5, 0], [1, -0.2, 0.5, 0], [0.5, 0.3, 0.5, 0], [1, -0.5, 0.5, 0], [0,0,0.5,0] ]
-    sp_list = large_square_difz
+    traj_setpoints = [ [0, 0, 0.5, 0], [-0.8, 0, 0.5, 0], [-.8, -0.6, 0.5, 0], [-0.7, -0.7, 0.5, 0], [0, -0.2, 0.5, 0], [0, 0, 0.5, 0] ]
+    sp_list = traj_setpoints
     for i in range(len(sp_list)):
         setpoint = sp_list[i]
         timeAlloted = setpoints_to_time(setpoint, last_sp)
@@ -423,9 +533,13 @@ if __name__ == '__main__':
     positionMove([0,0,0.2,0],0.4,N=1)
     positionMove([0,0,0,0],0.3, N=1)
     #print_beacon_camera_diff()
+    """
     rospy.loginfo("Done.")
-
-    get_stats()
+    for j in range(100):
+        rospy.sleep(0.1)
+        print_enc()
+    #get_stats()
+    save_enc_trace()
     
 
     exit_handler()
