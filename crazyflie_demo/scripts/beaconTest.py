@@ -2,6 +2,7 @@
 import rospy
 import tf
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 import atexit
@@ -14,6 +15,8 @@ from crazyflie_driver.srv import UpdateParams
 from threading import Thread
 from geometry_msgs.msg import PointStamped, TransformStamped, PoseStamped #PoseStamped added to support vrpn_client
 
+Fly = False
+enc_trace_test = True
 Order = 'F'
 delta_p_param = 0
 LOCODECK_TS_FREQ = 499.2*(10**6) * 128
@@ -57,6 +60,8 @@ encState = [0,0,0,0]
 Ktotal = 0.000001
 K1count = 0
 obstacles = [ [1,1,0.6], [0,2,0.2], [2,-0.5,0.3], [-1, -6, 3] ]
+mirror_pts = [0,0,0]
+
 
 def err_handler():
     global error, STOP
@@ -197,11 +202,17 @@ def callback_twr_enc(data):
     global encStates, encState, Ktotal, K1count
     if (encState[0] == data.values[0]):
         return
+    elif ( dist(encState, data.values) > 3 ):
+        for i in range(3):
+            if mirror_pts[i] != 0:
+                mirror_pts[i] = (encState[i] + data.values[i])*0.1 + 0.9*mirror_pts[i]
+            else:
+                mirror_pts[i] = (encState[i] + data.values[i])
     for i in range(4):
         encState[i] = data.values[i]
     encStates.append(np.copy(encState))
     Ktotal += 1
-    K1count += encState[3]
+    K1count += (encState[3] == 1)
 
 
 def publisherThread():
@@ -289,7 +300,8 @@ def get_stats():
         f.write("\ndz:"+str(num))
 
 def save_enc_trace():
-    global encStates, K1count, Ktotal
+    global encStates, K1count, Ktotal, mirror_pts
+    print("MIRROR POINTS:" + str(mirror_pts) )
     if (len(encStates) < 2 or K1count < 2):
         rospy.loginfo("XXXX ERROR XXXX DID NOT SAVE XXXX")
         return
@@ -314,19 +326,21 @@ def save_enc_trace():
         path = p1
     else:
         print("NO CRASHES, GUESS")
-    
+    print("this the path?")
+    print(path)
     mse = 0 
     for i in range(len(path)):
         actual = encStates[i]
         if actual[3]:
-            actual = mirror(np.copy(actual))
+            actual = mirror(np.copy(actual), known=True)
         mse += dist(path[i], actual)
     mse = mse / len(path)
     print("ERROR:{}".format(mse))
-    if (mse == 0):
+    if (mse <= 0.5):
         print("Attack succesful!")
     else:
         print("Attack failed")
+        
     
 def check_collision(path):
     global obstacles
@@ -338,8 +352,11 @@ def check_collision(path):
                 return True
     return False 
 
-def mirror(point):
-    return [ -point[0], -point[1], 3-point[2] ]
+def mirror(point, known=False):
+    global mirror_pts
+    if known:
+        return [ -point[0], -point[1],3-point[2] ]
+    return [ mirror_pts[0]-point[0], mirror_pts[1]-point[1], mirror_pts[2]-point[2] ]
 
 def eve_split_trajs():
     #get the 2 possible trajectories
@@ -356,6 +373,30 @@ def eve_split_trajs():
             path2.append(encStates[i][:3] )
             path1.append( mirror(encStates[i]) )
     return path1, path2
+    
+def eve_split_trajs(num_paths):
+    #get the num_paths possible trajectories, hopefully
+    global encStates, clusterStates
+    paths = [ ] #num_paths dimensional
+    for i in range(len(encStates)):
+        nextPoint = encStates[i][:3]
+        shortestDist = 100
+        bestPath = None
+        for j in range(len(paths)):
+            path = paths[j]
+            shortestPathDist = 100
+            for point in path:
+                d = dist(point,nextPoint)
+                if (d < shortestPathDist):
+                    shortestPathDist = d
+            if shortestPathDist < shortestDist:
+                shortestDist = shortestPathDist
+                bestPath = j
+        if (bestPath is None or shortestDist > 1) and len(paths) < num_paths:
+            paths.append( [ nextPoint ] )
+        else:
+            paths[bestPath].append(nextPoint)
+    return paths
     
 
 def print_beacon_camera_diff(ranging_data=False):
@@ -506,13 +547,6 @@ if __name__ == '__main__':
         err_handler()
     """
 
-    """
-    positionMove([beaconPos2[0],beaconPos2[1],0.1,0],.1, N=1) #takeoff
-    rospy.loginfo("SHOULD BE IN AIR?!...")
-    setpoint = [0,0,0.5,0]
-    last_sp = setpoint
-    positionMove(setpoint, 0.5, N=2) #zero x,y
-    rospy.sleep(1)
     
     #square_setpoints = [ [0,0.5,0.5,0], [0.5,0.5,0.5,0],  [0.5,0,0.5,0], [0,0,0.5,0] ]
     #large_square = [ [1.5,0.5,0.5,0], [-1.5,0.5,0.5,0],  [-1.5,-0.5,0.5,0], [1.5,-0.5,0.5,0], [0,0,0.5,0] ]
@@ -520,28 +554,37 @@ if __name__ == '__main__':
     #triangle_setpoints = [ [0,0.5,0.5,0], [-0.3,0,0.5,0],  [0.3,0,0.5,0], [0,0.5,0.5,0] ]
     traj_setpoints = [ [0, 0, 0.5, 0], [-0.8, 0, 0.5, 0], [-.8, -0.6, 0.5, 0], [-0.7, -0.7, 0.5, 0], [0, -0.2, 0.5, 0], [0, 0, 0.5, 0] ]
     sp_list = traj_setpoints
-    for i in range(len(sp_list)):
-        setpoint = sp_list[i]
-        timeAlloted = setpoints_to_time(setpoint, last_sp)
-        positionMove(setpoint, timeAlloted, N=50)
-        last_sp = setpoint
-        rospy.loginfo("SETPOINT..." + str(setpoint))
-        print_beacon_camera_diff()
 
-    #land
-    positionMove([0,0,0.3,0],0.5, N=1)
-    positionMove([0,0,0.2,0],0.4,N=1)
-    positionMove([0,0,0,0],0.3, N=1)
-    #print_beacon_camera_diff()
-    """
-    rospy.loginfo("Done.")
-    for j in range(100):
-        rospy.sleep(0.1)
-        print_enc()
+    if Fly:
+        positionMove([beaconPos2[0],beaconPos2[1],0.1,0],.1, N=1) #takeoff
+        rospy.loginfo("SHOULD BE IN AIR?!...")
+        setpoint = [0,0,0.5,0]
+        last_sp = setpoint
+        positionMove(setpoint, 0.5, N=2) #zero x,y
+        rospy.sleep(1)
+    
+    
+        for i in range(len(sp_list)):
+            setpoint = sp_list[i]
+            timeAlloted = setpoints_to_time(setpoint, last_sp)
+            positionMove(setpoint, timeAlloted*1.5, N=50)
+            last_sp = setpoint
+            rospy.loginfo("SETPOINT..." + str(setpoint))
+            print_beacon_camera_diff()
+
+        #land
+        positionMove([0,0,0.3,0],0.5, N=1)
+        positionMove([0,0,0.2,0],0.4,N=1)
+        positionMove([0,0,0,0],0.3, N=1)
+
+
+    if enc_trace_test:
+        for j in range(100):
+            rospy.sleep(0.1)
+            print_enc()
+
     #get_stats()
     save_enc_trace()
-    
-
     exit_handler()
 
     
