@@ -16,8 +16,10 @@ from threading import Thread
 from geometry_msgs.msg import PointStamped, TransformStamped, PoseStamped #PoseStamped added to support vrpn_client
 
 Fly = False 
-enc_trace_test = True
+enc_trace_test = False
 Order = 'F'
+time_series_test = True
+inf_loop = False
 delta_p_param = 0
 LOCODECK_TS_FREQ = 499.2*(10**6) * 128
 delta_bs = [0,0,0,0, 0,0,0,0]
@@ -228,8 +230,8 @@ def publisherThread():
     while not rospy.is_shutdown():
         if STOP:
             msgPos.x = 0
-	    msgPos.y = 0
-	    msgPos.z = 0 
+        msgPos.y = 0
+        msgPos.z = 0 
             msgPos.header.seq = sequence
             msgPos.header.stamp = rospy.Time.now()
             for j in range(10):
@@ -238,9 +240,9 @@ def publisherThread():
                 rate.sleep()
             return
         else:
-	    msgPos.x = currPos[0]+shift[0]
-	    msgPos.y = currPos[1]+shift[1]
-	    msgPos.z = currPos[2]
+        msgPos.x = currPos[0]+shift[0]
+        msgPos.y = currPos[1]+shift[1]
+        msgPos.z = currPos[2]
         msgPos.yaw = currPos[3]
         msgPos.header.seq = sequence
         msgPos.header.stamp = rospy.Time.now()
@@ -448,7 +450,7 @@ def print_beacon_camera_diff(ranging_data=False):
         return
     rospy.loginfo("beaconDists...")
     for i in range(8):
-    	rospy.loginfo(str(i) + ": " + str(beaconDists[i]) + "(mean:" + str(beaconMeans[i]) + ")")
+        rospy.loginfo(str(i) + ": " + str(beaconDists[i]) + "(mean:" + str(beaconMeans[i]) + ")")
     
 def print_ts():
     global ts
@@ -460,10 +462,10 @@ def print_ts():
 def print_deltas(only_dp=False):
     global delta_bs, ts
     if not only_dp:
-	rospy.loginfo("delta_bs: ")
-	for i in range(6):
+    rospy.loginfo("delta_bs: ")
+    for i in range(6):
             rospy.loginfo("delta_b{}: {}".format(i, delta_bs[i]/LOCODECK_TS_FREQ))
-	rospy.loginfo("delta_drone:{}".format((ts[4]-ts[3])/LOCODECK_TS_FREQ))
+    rospy.loginfo("delta_drone:{}".format((ts[4]-ts[3])/LOCODECK_TS_FREQ))
     #rospy.loginfo("delta_pl32:{}".format((ts[5])/LOCODECK_TS_FREQ))
     #rospy.loginfo("delta_ph8:{}".format((ts[6])/LOCODECK_TS_FREQ))
     rospy.loginfo("delta_p:{}".format(ticksToTime(ts[5], ts[6])) )
@@ -570,14 +572,27 @@ if __name__ == '__main__':
 
 
     #test code
-    setpoint = [0,0,0.5,0]
-    #positionMove(setpoint, 0.5, N=3) #zero x,y
-    rospy.sleep(3)
-    setpoint = [0,0,0,0]
-    #positionMove(setpoint, 0.5, N=1) #land
+    
+    if (time_series_test):
+        rospy.loginfo("STARTING TIME SERIES TEST")
+        setpoint = [0,0,0.5,0]
+        positionMove(setpoint, 0.5, N=1) #zero x,y
+        rospy.sleep(1)
+        print_beacon_camera_diff()
+        setpoint = [0,0,0,0]
+        positionMove(setpoint, 0.5, N=1) #land
+        print_beacon_camera_diff()
+        # Above makes beacon pos more accurate. From here, record beacon ests, plot est-camera over time.
+        rospy.loginfo("RECORDING DATA")
+        positionMove(setpoint, t=10, N=100)
+        times = np.linspace(0, 10, num=len(bc_diffx))
+        rospy.loginfo("PLOTTING")
+        plt.plot(bc_diffx, times, color="red")
+        plt.plot(bc_diffy, times, color="blue")
+        plt.plot(bc_diffz, times, color="green")
+        plt.show()
 
-
-    while (True):
+    while (inf_loop):
         rospy.sleep(4)
         #positionMove(setpoint, 0.5, N=1) #zero x,y
         #print_twr_other()
@@ -591,12 +606,7 @@ if __name__ == '__main__':
         pubConsole.publish(msgConsole)
         #rospy.sleep(2)
         #print_ts()
-
-    if cameraPos[0] + cameraPos[1] == 0:
-        err_handler()
-    
-
-    
+        
     #square_setpoints = [ [0,0.5,0.5,0], [0.5,0.5,0.5,0],  [0.5,0,0.5,0], [0,0,0.5,0] ]
     #large_square = [ [1.5,0.5,0.5,0], [-1.5,0.5,0.5,0],  [-1.5,-0.5,0.5,0], [1.5,-0.5,0.5,0], [0,0,0.5,0] ]
     #large_square_difz = [ [1.5,0.5,0.4,0], [-1.5,0.5,0.7,0],  [-1.5,-0.5,0.5,0], [1.5,-0.5,0.3,0], [0,0,0.4,0] ]
@@ -632,9 +642,9 @@ if __name__ == '__main__':
         for j in range(100):
             rospy.sleep(0.1)
             print_enc()
-
+        save_enc_trace()
     #get_stats()
-    save_enc_trace()
+        
     exit_handler()
 
     
