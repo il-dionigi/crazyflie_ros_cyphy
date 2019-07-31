@@ -459,10 +459,10 @@ def print_ts():
 def print_deltas(only_dp=False):
     global delta_bs, ts
     if not only_dp:
-    rospy.loginfo("delta_bs: ")
-    for i in range(6):
-        rospy.loginfo("delta_b{}: {}".format(i, delta_bs[i]/LOCODECK_TS_FREQ))
-    rospy.loginfo("delta_drone:{}".format((ts[4]-ts[3])/LOCODECK_TS_FREQ))
+        rospy.loginfo("delta_bs: ")
+        for i in range(6):
+            rospy.loginfo("delta_b{}: {}".format(i, delta_bs[i]/LOCODECK_TS_FREQ))
+        rospy.loginfo("delta_drone:{}".format((ts[4]-ts[3])/LOCODECK_TS_FREQ))
     #rospy.loginfo("delta_pl32:{}".format((ts[5])/LOCODECK_TS_FREQ))
     #rospy.loginfo("delta_ph8:{}".format((ts[6])/LOCODECK_TS_FREQ))
     rospy.loginfo("delta_p:{}".format(ticksToTime(ts[5], ts[6])) )
