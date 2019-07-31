@@ -216,6 +216,11 @@ def callback_twr_enc(data):
     Ktotal += 1
     K1count += (encState[3] == 1)
 
+def callback_twr_encTime(data):
+    #print("MIRROR TIME THEN AES TIME:")
+    #print(data.values[0])
+    #print(data.values[1])
+    pass
 
 def publisherThread():
     global currPos, shift
@@ -516,6 +521,7 @@ if __name__ == '__main__':
     rospy.Subscriber("TWRother", GenericLogData, callback_twr_other)
     rospy.Subscriber("TWReve", GenericLogData, callback_twr_eve)
     rospy.Subscriber("TWRenc", GenericLogData, callback_twr_enc)
+    rospy.Subscriber("encTime", GenericLogData, callback_twr_encTime)
     #for position mode
     msgPos = Position()
     msgPos.header.seq = 0
@@ -549,7 +555,7 @@ if __name__ == '__main__':
     rospy.set_param("kalman/resetEstimation", 0)
     update_params(["kalman/resetEstimation"])
     rospy.sleep(0.1)
-    pubConsole.publish(msgConsole)
+    #pubConsole.publish(msgConsole)
     rospy.set_param("flightmode/posSet", 1)
     update_params(["flightmode/posSet"])
     rospy.sleep(3)
@@ -561,8 +567,6 @@ if __name__ == '__main__':
 
     timeAlloted = 1.5
     print_beacon_camera_diff()
-
-    rospy.sleep(2)
 
 
     #test code
@@ -584,7 +588,7 @@ if __name__ == '__main__':
         #print_enc()
         #num = i
         #msgConsole.data = [ord('%'), ord('T'), ord('S'), num, 0, 0, 0]
-
+        pubConsole.publish(msgConsole)
         #rospy.sleep(2)
         #print_ts()
 
