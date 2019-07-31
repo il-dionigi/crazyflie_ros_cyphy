@@ -15,7 +15,7 @@ from crazyflie_driver.srv import UpdateParams
 from threading import Thread
 from geometry_msgs.msg import PointStamped, TransformStamped, PoseStamped #PoseStamped added to support vrpn_client
 
-Fly = False
+Fly = False 
 enc_trace_test = True
 Order = 'F'
 delta_p_param = 0
@@ -59,7 +59,9 @@ encStates = []
 encState = [0,0,0,0]
 Ktotal = 0.000001
 K1count = 0
-obstacles = [ [1,1,0.6], [0,2,0.2], [2,-0.5,0.3], [-1, -6, 3] ]
+obstacles = [ [1,1,0.5], [0,2,0.2], [2,0,0.3], [-1, -6, 5] ] # drone canNOT go through these, list of [x, y, radius]
+waypoints = [  ] # drone MUST go through these, list of [x,y, radius]
+
 mirror_pts = [0,0,0]
 
 
@@ -300,7 +302,7 @@ def get_stats():
         f.write("\ndz:"+str(num))
 
 def save_enc_trace():
-    global encStates, K1count, Ktotal, mirror_pts
+    global encStates, K1count, Ktotal, mirror_pts, waypoints
     print("MIRROR POINTS:" + str(mirror_pts) )
     if (len(encStates) < 2 or K1count < 2):
         rospy.loginfo("XXXX ERROR XXXX DID NOT SAVE XXXX")
@@ -320,14 +322,29 @@ def save_enc_trace():
 
     p1, p2 = eve_split_trajs()
     path = p1
+
+
     if (check_collision(p1) ):
         path = p2
+        print("p1 crashed")
     elif (check_collision(p2) ):
         path = p1
+        print("p2 crashed")
     else:
         print("NO CRASHES, GUESS")
-    print("this the path?")
-    print(path)
+    if not check_waypoints(p1):
+        print("p1 didnt pass waypoint")
+        if check_waypoints(p2):
+            print("and p2 did pass!")
+            path = p2
+    elif not check_waypoints(p2):
+        print("p2 didnt pass waypoint")
+        if check_waypoints(p1):
+            print("and p1 did pass!")
+            path = p1
+    else:
+        print("both went through waypoints!")
+
     mse = 0 
     for i in range(len(path)):
         actual = encStates[i]
@@ -340,7 +357,8 @@ def save_enc_trace():
         print("Attack succesful!")
     else:
         print("Attack failed")
-        
+    print("FILE: EncK1percent:{}.txt".format(1.0*K1count/Ktotal) )
+    print("Waypoints:" + str(waypoints))
     
 def check_collision(path):
     global obstacles
@@ -351,6 +369,19 @@ def check_collision(path):
             if ( abs(px - ox) < orad and abs(py - oy) < orad ):
                 return True
     return False 
+
+def check_waypoints(path):
+    global waypoints
+    for wp in waypoints:
+        wx, wy, wrad = wp
+        passed_waypoint = False
+        for point in path:
+            px, py, pz = point
+            if  ( abs(px - wx) < wrad and abs(py - wy) < wrad ):
+                passed_waypoint = True
+        if not passed_waypoint:
+            return False
+    return True 
 
 def mirror(point, known=False):
     global mirror_pts
@@ -374,7 +405,7 @@ def eve_split_trajs():
             path1.append( mirror(encStates[i]) )
     return path1, path2
     
-def eve_split_trajs(num_paths):
+def eve_split_trajs_multiple(num_paths):
     #get the num_paths possible trajectories, hopefully
     global encStates, clusterStates
     paths = [ ] #num_paths dimensional
@@ -463,6 +494,13 @@ def setpoints_to_time(s1, s2):
 def ticksToTime(ticks_low, ticks_high=0):
     return (ticks_low/LOCODECK_TS_FREQ) + ticks_high*(2**32/LOCODECK_TS_FREQ) 
 
+def set_waypoints(setpoints):
+    global waypoints
+    R = 0.2
+    for setpoint in setpoints:
+        waypoints.append( [setpoint[0], setpoint[1], R] )
+
+
 if __name__ == '__main__':
     atexit.register(exit_handler)
     rospy.init_node('beaconTest', anonymous=True)
@@ -500,7 +538,7 @@ if __name__ == '__main__':
     #msgConsole.data = [ord('%'), ord('O'), ord('F'), 0, 0, 0, 0] # CHANGE TO FIXED ORDER
     #msgConsole.data = [ord('%'), ord('O'), ord('R'), 0, 0, 0, 0] # CHANGE TO RANDOM ORDER
     #msgConsole.data = [ord('%'), ord('O'), ord(Order), 0, 0, 0, 0]
-    msgConsole.data = [ord('%'), ord('S'), ord('F'), 0, 0, 0, 0]
+    msgConsole.data = [ord('%'), ord('P'), ord('D'), 0, 0, 0, 0]
     rospy.wait_for_service('update_params')
     rospy.loginfo("found update_params service")
     update_params = rospy.ServiceProxy('update_params', UpdateParams)
@@ -517,7 +555,7 @@ if __name__ == '__main__':
     rospy.sleep(3)
 
 
-    pubConsole.publish(msgConsole)
+    #pubConsole.publish(msgConsole)
     msgPublisher = Thread(target=publisherThread)
     msgPublisher.start()
 
@@ -528,24 +566,31 @@ if __name__ == '__main__':
 
 
     #test code
-    """
+    setpoint = [0,0,0.5,0]
+    #positionMove(setpoint, 0.5, N=3) #zero x,y
+    rospy.sleep(3)
+    setpoint = [0,0,0,0]
+    #positionMove(setpoint, 0.5, N=1) #land
+
+
     while (True):
-        rospy.sleep(1)
+        rospy.sleep(4)
+        #positionMove(setpoint, 0.5, N=1) #zero x,y
         #print_twr_other()
         #print_twr_eve()
         #print_ts()
         #print_deltas(True)
         #print_beacon_camera_diff(ranging_data=False)
-        print_enc()
+        #print_enc()
         #num = i
         #msgConsole.data = [ord('%'), ord('T'), ord('S'), num, 0, 0, 0]
-        #pubConsole.publish(msgConsole)
+
         #rospy.sleep(2)
         #print_ts()
 
     if cameraPos[0] + cameraPos[1] == 0:
         err_handler()
-    """
+    
 
     
     #square_setpoints = [ [0,0.5,0.5,0], [0.5,0.5,0.5,0],  [0.5,0,0.5,0], [0,0,0.5,0] ]
@@ -556,6 +601,7 @@ if __name__ == '__main__':
     sp_list = traj_setpoints
 
     if Fly:
+        set_waypoints(sp_list)
         positionMove([beaconPos2[0],beaconPos2[1],0.1,0],.1, N=1) #takeoff
         rospy.loginfo("SHOULD BE IN AIR?!...")
         setpoint = [0,0,0.5,0]

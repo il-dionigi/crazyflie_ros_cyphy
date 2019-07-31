@@ -32,17 +32,17 @@
         genericLogTopic_TWReve_Variables: ["twr_eve.est_tof_add", "twr_eve.est_tof_mult", "twr_eve.actual_tof_add", "twr_eve.actual_tof_mult" ]         
 	genericLogTopic_TWRother_Variables: ["twrOther.singleRanging", "twrOther.allRangings", "twrOther.betweenRounds", "twrOther.betweenRangings" ]
       </rosparam>
--->
+
       <rosparam>
         genericLogTopics: ["KF", "TWRtime", "TWRother", "TWReve", "TWRenc"]
-        genericLogTopicFrequencies: [100, 100, 100, 100, 100]
+        genericLogTopicFrequencies: [100, 100, 100, 100, 10]
         genericLogTopic_KF_Variables: ["kalman.stateX", "kalman.stateY", "kalman.stateZ"]
         genericLogTopic_TWRtime_Variables: ["twr.t1", "twr.t2", "twr.t3", "twr.t4", "twr.t5", "twr.delta_p", "twr.delta_ph8"]
         genericLogTopic_TWRother_Variables: ["twrOther.singleRanging", "twrOther.allRangings", "twrOther.betweenRounds", "twrOther.betweenRangings", "twrOther.singleRanging_h8", "twrOther.allRangings_h8", "twrOther.betweenRounds_h8"]
         genericLogTopic_TWReve_Variables: ["twr_eve.est_tof_add", "twr_eve.est_tof_mult", "twr_eve.actual_tof_add", "twr_eve.actual_tof_mult" ] 
         genericLogTopic_TWRenc_Variables: ["kalman.encX", "kalman.encY", "kalman.encZ", "kalman.bitK" ] 
       </rosparam>       
-            
+-->            
     </node>
 
 	<!-- This node is for getting camera-positions -->
