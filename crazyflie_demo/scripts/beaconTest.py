@@ -230,8 +230,8 @@ def publisherThread():
     while not rospy.is_shutdown():
         if STOP:
             msgPos.x = 0
-        msgPos.y = 0
-        msgPos.z = 0 
+            msgPos.y = 0
+            msgPos.z = 0 
             msgPos.header.seq = sequence
             msgPos.header.stamp = rospy.Time.now()
             for j in range(10):
@@ -240,18 +240,15 @@ def publisherThread():
                 rate.sleep()
             return
         else:
-        msgPos.x = currPos[0]+shift[0]
-        msgPos.y = currPos[1]+shift[1]
-        msgPos.z = currPos[2]
-        msgPos.yaw = currPos[3]
-        msgPos.header.seq = sequence
-        msgPos.header.stamp = rospy.Time.now()
-        pubPos.publish(msgPos)
-
-        #rospy.loginfo("sending...(M)")
-        #rospy.loginfo("x:"+ str(msgPos.x) + " y:" + str(msgPos.y) + " z:" + str(msgPos.z))
-        sequence += 1
-        rate.sleep() 
+            msgPos.x = currPos[0]+shift[0]
+            msgPos.y = currPos[1]+shift[1]
+            msgPos.z = currPos[2]
+            msgPos.yaw = currPos[3]
+            msgPos.header.seq = sequence
+            msgPos.header.stamp = rospy.Time.now()
+            pubPos.publish(msgPos)
+            sequence += 1
+            rate.sleep() 
 
 def positionMove(pos=[0,0,0,0], t=1, N=1):
     global currPos, STOP
@@ -464,7 +461,7 @@ def print_deltas(only_dp=False):
     if not only_dp:
     rospy.loginfo("delta_bs: ")
     for i in range(6):
-            rospy.loginfo("delta_b{}: {}".format(i, delta_bs[i]/LOCODECK_TS_FREQ))
+        rospy.loginfo("delta_b{}: {}".format(i, delta_bs[i]/LOCODECK_TS_FREQ))
     rospy.loginfo("delta_drone:{}".format((ts[4]-ts[3])/LOCODECK_TS_FREQ))
     #rospy.loginfo("delta_pl32:{}".format((ts[5])/LOCODECK_TS_FREQ))
     #rospy.loginfo("delta_ph8:{}".format((ts[6])/LOCODECK_TS_FREQ))
