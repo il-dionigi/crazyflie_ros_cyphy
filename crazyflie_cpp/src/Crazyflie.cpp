@@ -19,7 +19,7 @@
 #define MAX_USB     4
 
 
-/*#include "aes.h"
+#include "aes.h"
 static Aes aes;
 static byte key[16] = {0x02, 0x01, 0x05, 0x10, 0x02, 0x01, 0x05, 0x10,0x02, 0x01, 0x05, 0x10,0x02, 0x01, 0x05, 0x10};
 		// iv and key must be 16 bytes
@@ -29,7 +29,7 @@ static char encryptedData[60];
 static char plainData[60];
 static char buf[1000];
 static int bufLength = 0;
-*/
+
 Crazyradio* g_crazyradios[MAX_RADIOS];
 std::mutex g_radioMutex[MAX_RADIOS];
 
@@ -963,8 +963,8 @@ void Crazyflie::handleAck(
 		  crtpConsoleResponse* r = (crtpConsoleResponse*)result.data;
           //encrypted data; decryption stuff here
 		  //aes decryption: wc_AesCbcDecrypt 
-		  m_logger.info("Got channel 2 (encryption) response!\n Plaintext is: ?");
-		  /* 
+		  m_logger.info("Got channel 2 (encryption) response!\n Plaintext is:");
+		  
 		  if (! aes_set ){
 			  aes_set = true;
 			  wc_AesSetKey(&aes, key, 16, iv, AES_DECRYPTION);
@@ -972,7 +972,7 @@ void Crazyflie::handleAck(
 		  memcpy(encryptedData, r->text, 16);
 		  wc_AesCbcDecrypt(&aes, (byte*)plainData, (byte*)encryptedData, 16);
 		  m_logger.info(plainData);
-			*/
+			
 
 
         }
