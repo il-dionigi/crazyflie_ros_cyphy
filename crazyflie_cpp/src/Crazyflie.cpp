@@ -18,6 +18,18 @@
 #define MAX_RADIOS 16
 #define MAX_USB     4
 
+
+#include "aes.h"
+static Aes aes;
+static byte key[16] = {0x02, 0x01, 0x05, 0x10, 0x02, 0x01, 0x05, 0x10,0x02, 0x01, 0x05, 0x10,0x02, 0x01, 0x05, 0x10};
+		// iv and key must be 16 bytes
+static byte iv[16] = {0x02, 0x01, 0x05, 0x10, 0x02, 0x01, 0x05, 0x10,0x02, 0x01, 0x05, 0x10,0x02, 0x01, 0x05, 0x10};
+static bool aes_set = false;
+static char encryptedData[60];
+static char plainData[60];
+static char buf[1000];
+static int bufLength = 0;
+
 Crazyradio* g_crazyradios[MAX_RADIOS];
 std::mutex g_radioMutex[MAX_RADIOS];
 
@@ -948,7 +960,20 @@ void Crazyflie::handleAck(
           }
         }
         else if ( (int)header->channel == 2){
+		  crtpConsoleResponse* r = (crtpConsoleResponse*)result.data;
           //encrypted data; decryption stuff here
+		  //aes decryption: wc_AesCbcDecrypt 
+		  m_logger.info("Got channel 2 (encryption) response!\n Plaintext is:");
+		  if (! aes_set ){
+			  aes_set = true;
+			  wc_AesSetKey(&aes, key, 16, iv, AES_DECRYPTION);
+		  }
+		  memcpy(encryptedData, r->text, 16);
+		  wc_AesCbcDecrypt(&aes, (byte*)plainData, (byte*)encryptedData, 16);
+		  m_logger.info(plainData);
+
+
+
         }
         else{
           //channel =3 , testing channel
@@ -957,42 +982,7 @@ void Crazyflie::handleAck(
 		  if (r->text[0] == '='){
 			  m_logger.info("Got xyz~:");
 		  }
-		  int i;
-		  uint32_t x = 0;
-		  uint32_t y = 0;
-		  uint32_t z = 0;
-		  for (i = 0; i < 4; i++){
-			if (i == 0){
-				x = r->text[3-i+1];
-			}
-			else{
-				x = x*256 + r->text[3-i+1];
-			}
-		  } //forx
-		  for (i = 0; i < 4; i++){
-			if (i == 0){
-				y = r->text[3-i+5];
-			}
-			else{
-				y = y*256 + r->text[3-i+5];
-			}
-		  } //fory
-		  for (i = 0; i < 4; i++){
-			if (i == 0){
-				z = r->text[3-i+9];
-			}
-			else{
-				z = z*256 + r->text[3-i+9];
-			}
-		  } //forz
-		  // convert xyz to float
-		  float fx, fy, fz;
-		  fx = *( (float*)&x);
-		  fy = *( (float*)&y); 
-		  fz = *( (float*)&z); 
-		  printf("FLOATS: x:%.2f, y:%.2f, z:%.2f\n", fx, fy, fz);
-
-          /*
+          int i = 0;
 		  //want to print bytes
           char hex[17] = "0123456789ABCDEF";
           
@@ -1005,7 +995,7 @@ void Crazyflie::handleAck(
           }
           toPrint[index] = 0;
           printf("BYTES: %s\n", toPrint);
-		  */
+		  
         }
       }
     }
