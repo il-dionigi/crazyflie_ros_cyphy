@@ -15,6 +15,7 @@ from crazyflie_driver.srv import UpdateParams
 from threading import Thread
 from geometry_msgs.msg import PointStamped, TransformStamped, PoseStamped #PoseStamped added to support vrpn_client
 
+dont_move = True
 Fly = False 
 enc_trace_test = False
 Order = 'F'
@@ -252,7 +253,8 @@ def publisherThread():
 
 def positionMove(pos=[0,0,0,0], t=1, N=1):
     global currPos, STOP
-    currPos = pos      
+    if not dont_move:
+        currPos = pos      
     if (STOP):
         return
     for i in range(N):
@@ -572,8 +574,9 @@ if __name__ == '__main__':
     
     if (time_series_test):
         rospy.loginfo("STARTING TIME SERIES TEST")
+        positionMove([beaconPos2[0],beaconPos2[1],0.1,0],.1, N=1) #takeoff
         setpoint = [0,0,0.5,0]
-        positionMove(setpoint, 0.5, N=1) #zero x,y
+        positionMove(setpoint, 3.5, N=1) #zero x,y
         rospy.sleep(1)
         print_beacon_camera_diff()
         setpoint = [0,0,0,0]
@@ -581,13 +584,24 @@ if __name__ == '__main__':
         print_beacon_camera_diff()
         # Above makes beacon pos more accurate. From here, record beacon ests, plot est-camera over time.
         rospy.loginfo("RECORDING DATA")
-        positionMove(setpoint, t=10, N=100)
-        times = np.linspace(0, 10, num=len(bc_diffx))
+        exp_time = 100
+        positionMove(setpoint, t=exp_time, N=exp_time*10)
+        times = np.linspace(0, exp_time, num=len(bc_diffx))
         rospy.loginfo("PLOTTING")
-        plt.plot(bc_diffx, times, color="red")
-        plt.plot(bc_diffy, times, color="blue")
-        plt.plot(bc_diffz, times, color="green")
+        
+        plt.plot(times, bc_diffx, color="red")
+        plt.xlabel("time (s)")
+        plt.ylabel("x (m)")
         plt.show()
+        plt.plot(times, bc_diffy, color="blue")
+        plt.xlabel("time (s)")
+        plt.ylabel("y (m)")
+        plt.show()
+        plt.plot(times, bc_diffz, color="green")
+        plt.xlabel("time (s)")
+        plt.ylabel("z (m)")
+        plt.show()
+
 
     while (inf_loop):
         rospy.sleep(4)

@@ -35,7 +35,7 @@
 -->
       <rosparam>
         genericLogTopics: ["KF", "TWRtime", "TWRother", "TWReve", "TWRenc", "encTime"]
-        genericLogTopicFrequencies: [100, 100, 100, 100, 10, 100]
+        genericLogTopicFrequencies: [50, 100, 100, 100, 10, 100]
         genericLogTopic_KF_Variables: ["kalman.stateX", "kalman.stateY", "kalman.stateZ"]
         genericLogTopic_TWRtime_Variables: ["twr.t1", "twr.t2", "twr.t3", "twr.t4", "twr.t5", "twr.delta_p", "twr.delta_ph8"]
         genericLogTopic_TWRother_Variables: ["twrOther.singleRanging", "twrOther.allRangings", "twrOther.betweenRounds", "twrOther.betweenRangings", "twrOther.singleRanging_h8", "twrOther.allRangings_h8", "twrOther.betweenRounds_h8"]
