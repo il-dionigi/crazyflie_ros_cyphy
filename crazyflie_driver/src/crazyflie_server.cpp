@@ -298,7 +298,6 @@ void cmdConsoleMsg(
 	msgData[ii] = (msg->data)[ii];
         if (msgData[ii] == '\0'){ break; }
       }
-  printf("In cmdConsoleMsg, msgData:%s\n*******\n", msgData);
       m_cf.ConsoleMsg(msgData);
     
   }

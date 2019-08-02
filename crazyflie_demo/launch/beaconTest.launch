@@ -32,7 +32,7 @@
         genericLogTopic_TWReve_Variables: ["twr_eve.est_tof_add", "twr_eve.est_tof_mult", "twr_eve.actual_tof_add", "twr_eve.actual_tof_mult" ]         
 	genericLogTopic_TWRother_Variables: ["twrOther.singleRanging", "twrOther.allRangings", "twrOther.betweenRounds", "twrOther.betweenRangings" ]
       </rosparam>
--->
+
       <rosparam>
         genericLogTopics: ["KF", "TWRtime", "TWRother", "TWReve", "TWRenc", "encTime"]
         genericLogTopicFrequencies: [50, 100, 100, 100, 10, 100]

@@ -15,12 +15,12 @@ from crazyflie_driver.srv import UpdateParams
 from threading import Thread
 from geometry_msgs.msg import PointStamped, TransformStamped, PoseStamped #PoseStamped added to support vrpn_client
 
-dont_move = False
+dont_move = True
 Fly = False 
 enc_trace_test = False
 Order = 'F'
-time_series_test = True
-inf_loop = False
+time_series_test = False
+inf_loop = True
 delta_p_param = 0
 LOCODECK_TS_FREQ = 499.2*(10**6) * 128
 delta_bs = [0,0,0,0, 0,0,0,0]
@@ -544,8 +544,9 @@ if __name__ == '__main__':
     #msgConsole.data = [ord('%'), ord('T'), ord('S'), delta_p_param, 0, 0, 0] # CHANGE TDMA SLOT
     #msgConsole.data = [ord('%'), ord('O'), ord('F'), 0, 0, 0, 0] # CHANGE TO FIXED ORDER
     #msgConsole.data = [ord('%'), ord('O'), ord('R'), 0, 0, 0, 0] # CHANGE TO RANDOM ORDER
-    #msgConsole.data = [ord('%'), ord('O'), ord(Order), 0, 0, 0, 0]
-    msgConsole.data = [ord('%'), ord('P'), ord('D'), 0, 0, 0, 0]
+    #msgConsole.data = [ord('%'), ord('O'), ord(Order), 0, 0, 0, 0] 
+    #msgConsole.data = [ord('%'), ord('P'), ord('D'), 0, 0, 0, 0] # DRONE PROFILE
+    msgConsole.data = [ord('%'), ord('S'), ord('E'), 0, 0, 0, 0] # SEND ENCRYPT
     rospy.wait_for_service('update_params')
     rospy.loginfo("found update_params service")
     update_params = rospy.ServiceProxy('update_params', UpdateParams)
@@ -601,10 +602,10 @@ if __name__ == '__main__':
         plt.xlabel("time (s)")
         plt.ylabel("z (m)")
         plt.show()
-
-
+    if (inf_loop):
+        print("INF LOOP START")
     while (inf_loop):
-        rospy.sleep(4)
+        rospy.sleep(1)
         #positionMove(setpoint, 0.5, N=1) #zero x,y
         #print_twr_other()
         #print_twr_eve()

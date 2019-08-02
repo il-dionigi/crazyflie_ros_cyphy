@@ -160,7 +160,6 @@ void Crazyflie::ConsoleMsg(
   char msgData[30]; 
   std::memcpy(msgData, msg, 30);
   msgData[29] = '\0';
-  printf("In crazyflie::consolemsg, sending msg with data:%s\n*******\n", msgData);
   crtpConsoleRequest consoleMessage(msgData);
   sendPacket((const uint8_t*)&consoleMessage, sizeof(consoleMessage));
 }
@@ -893,8 +892,9 @@ void Crazyflie::handleAck(
 {
   if (crtpConsoleResponse::match(result)) {
     if (result.size > 0) {
+      crtp* header = (crtp*)result.data;
       crtpConsoleResponse* r = (crtpConsoleResponse*)result.data;
-      if (m_consoleCallback) {
+      if (m_consoleCallback && (int)header->channel == 0) {
         m_consoleCallback(r->text);
       }
     }
@@ -954,9 +954,7 @@ void Crazyflie::handleAck(
   }
   else {
     crtp* header = (crtp*)result.data;
-    m_logger.warning("Don't know ack: Port: " + std::to_string((int)header->port)
-      + " Channel: " + std::to_string((int)header->channel)
-      + " Len: " + std::to_string((int)result.size));
+    
     if ((int)header->port == 0){
       if (result.size > 0) {
         if ( (int)header->channel == 1){
@@ -975,6 +973,7 @@ void Crazyflie::handleAck(
 			  aes_set = true;
 			  wc_AesSetKey(&aes, key, 16, iv, AES_DECRYPTION);
 		  }
+		  wc_AesSetKey(&aes, key, 16, iv, AES_DECRYPTION); // pure AES
 		  memcpy(encryptedData, r->text, 16);
 		  wc_AesCbcDecrypt(&aes, (byte*)plainData, (byte*)encryptedData, 16);
 		  m_logger.info(plainData);
@@ -1006,10 +1005,13 @@ void Crazyflie::handleAck(
         }
       }
     }
-    // for (size_t i = 1; i < result.size; ++i) {
-    //   std::cout << "    " << (int)result.data[i] << std::endl;
-    // }
+    else{
+      m_logger.warning("Don't know ack: Port: " + std::to_string((int)header->port)
+      + " Channel: " + std::to_string((int)header->channel)
+      + " Len: " + std::to_string((int)result.size));
+    }
     queueGenericPacket(result);
+    
   }
 }
 

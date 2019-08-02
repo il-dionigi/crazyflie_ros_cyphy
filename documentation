@@ -35,4 +35,5 @@ cd wolfSSL
 make
 make check
 sudo make install
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib
 -Note that the ROS.cmake and CMake.cmake are edited to include wolfssl
