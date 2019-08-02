@@ -25,3 +25,14 @@ rostopic echo <topic> (echo's all data published to topic)
 rostopic list -v (lists all topics + how many subscribers/publishers)
 rostopic info <topic> (lists which nodes are published/subscribed)
 rosrun rqt_graph rqt_graph (shows a graph of publishers and subcribers, can be a little misleading at times)
+
+To get wolfssl working:
+git clone https://github.com/wolfSSL/wolfssl
+cd wolfSSL
+(sudo apt-get install autoconf)
+./autogen.sh
+./configure --enable-pwdbased
+make
+make check
+sudo make install
+-Note that the ROS.cmake and CMake.cmake are edited to include wolfssl

@@ -15,7 +15,7 @@ from crazyflie_driver.srv import UpdateParams
 from threading import Thread
 from geometry_msgs.msg import PointStamped, TransformStamped, PoseStamped #PoseStamped added to support vrpn_client
 
-dont_move = True
+dont_move = False
 Fly = False 
 enc_trace_test = False
 Order = 'F'
@@ -580,11 +580,11 @@ if __name__ == '__main__':
         rospy.sleep(1)
         print_beacon_camera_diff()
         setpoint = [0,0,0,0]
-        positionMove(setpoint, 0.5, N=1) #land
+        #positionMove(setpoint, 0.5, N=1) #land
         print_beacon_camera_diff()
         # Above makes beacon pos more accurate. From here, record beacon ests, plot est-camera over time.
         rospy.loginfo("RECORDING DATA")
-        exp_time = 100
+        exp_time = 5
         positionMove(setpoint, t=exp_time, N=exp_time*10)
         times = np.linspace(0, exp_time, num=len(bc_diffx))
         rospy.loginfo("PLOTTING")

@@ -43,6 +43,7 @@ add_library(crazyflie_cpp
 ## Specify libraries to link a library or executable target against
 target_link_libraries(crazyflie_cpp
   ${USB_LIB}
+  wolfssl
 )
 
 #############
